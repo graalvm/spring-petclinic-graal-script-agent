@@ -19,6 +19,8 @@ package org.springframework.samples.petclinic.owner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
+import org.springframework.samples.petclinic.script.SavedOwnerQueryScript;
+import org.springframework.samples.petclinic.script.SavedOwnerQueryScriptService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
@@ -31,8 +33,10 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
@@ -70,6 +74,9 @@ class OwnerControllerTests {
 	@MockitoBean
 	private OwnerRepository owners;
 
+	@MockitoBean
+	private SavedOwnerQueryScriptService savedOwnerQueries;
+
 	private Owner george() {
 		Owner george = new Owner();
 		george.setId(TEST_OWNER_ID);
@@ -93,7 +100,9 @@ class OwnerControllerTests {
 	void setup() {
 
 		Owner george = george();
-		given(this.owners.findByLastNameStartingWith(eq("Franklin"), any(Pageable.class)))
+		given(this.savedOwnerQueries.findAll()).willReturn(List.of());
+		given(this.owners.findByLastNameStartingWithAndFirstNameStartingWith(eq("Franklin"), eq("George"),
+				any(Pageable.class)))
 			.willReturn(new PageImpl<>(List.of(george)));
 
 		given(this.owners.findById(TEST_OWNER_ID)).willReturn(Optional.of(george));
@@ -138,20 +147,38 @@ class OwnerControllerTests {
 		mockMvc.perform(get("/owners/find"))
 			.andExpect(status().isOk())
 			.andExpect(model().attributeExists("owner"))
+			.andExpect(model().attributeExists("savedOwnerQueries"))
 			.andExpect(view().name("owners/findOwners"));
+	}
+
+	@Test
+	void initFindFormShowsSavedOwnerQueries() throws Exception {
+		SavedOwnerQueryScript savedQuery = new SavedOwnerQueryScript();
+		savedQuery.setId(7);
+		savedQuery.setName("Madison Owners");
+		given(this.savedOwnerQueries.findAll()).willReturn(List.of(savedQuery));
+
+		mockMvc.perform(get("/owners/find"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(containsString("Madison Owners")))
+			.andExpect(content().string(containsString("/owners/saved-queries/7")));
 	}
 
 	@Test
 	void processFindFormSuccess() throws Exception {
 		Page<Owner> tasks = new PageImpl<>(List.of(george(), new Owner()));
-		when(this.owners.findByLastNameStartingWith(anyString(), any(Pageable.class))).thenReturn(tasks);
+		when(this.owners.findByLastNameStartingWithAndFirstNameStartingWith(anyString(), anyString(),
+				any(Pageable.class)))
+			.thenReturn(tasks);
 		mockMvc.perform(get("/owners?page=1")).andExpect(status().isOk()).andExpect(view().name("owners/ownersList"));
 	}
 
 	@Test
 	void processFindFormByLastName() throws Exception {
 		Page<Owner> tasks = new PageImpl<>(List.of(george()));
-		when(this.owners.findByLastNameStartingWith(eq("Franklin"), any(Pageable.class))).thenReturn(tasks);
+		when(this.owners.findByLastNameStartingWithAndFirstNameStartingWith(eq("Franklin"), eq(""),
+				any(Pageable.class)))
+			.thenReturn(tasks);
 		mockMvc.perform(get("/owners?page=1").param("lastName", "Franklin"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(view().name("redirect:/owners/" + TEST_OWNER_ID));
@@ -160,7 +187,9 @@ class OwnerControllerTests {
 	@Test
 	void processFindFormIgnoresSurroundingWhitespace() throws Exception {
 		Page<Owner> tasks = new PageImpl<>(List.of(george()));
-		when(this.owners.findByLastNameStartingWith(eq("Franklin"), any(Pageable.class))).thenReturn(tasks);
+		when(this.owners.findByLastNameStartingWithAndFirstNameStartingWith(eq("Franklin"), eq(""),
+				any(Pageable.class)))
+			.thenReturn(tasks);
 
 		for (String lastName : List.of(" Franklin", "Franklin ", " Franklin ")) {
 			mockMvc.perform(get("/owners?page=1").param("lastName", lastName))
@@ -168,31 +197,75 @@ class OwnerControllerTests {
 				.andExpect(view().name("redirect:/owners/" + TEST_OWNER_ID));
 		}
 
-		verify(this.owners, times(3)).findByLastNameStartingWith(eq("Franklin"), any(Pageable.class));
+		verify(this.owners, times(3)).findByLastNameStartingWithAndFirstNameStartingWith(eq("Franklin"), eq(""),
+				any(Pageable.class));
 	}
 
 	@Test
 	void processFindFormWithWhitespaceOnlyLastNameReturnsAllOwners() throws Exception {
 		Page<Owner> tasks = new PageImpl<>(List.of(george(), new Owner()));
-		when(this.owners.findByLastNameStartingWith(eq(""), any(Pageable.class))).thenReturn(tasks);
+		when(this.owners.findByLastNameStartingWithAndFirstNameStartingWith(eq(""), eq(""), any(Pageable.class)))
+			.thenReturn(tasks);
 
 		mockMvc.perform(get("/owners?page=1").param("lastName", "   "))
 			.andExpect(status().isOk())
 			.andExpect(view().name("owners/ownersList"));
 
-		verify(this.owners).findByLastNameStartingWith(eq(""), any(Pageable.class));
+		verify(this.owners).findByLastNameStartingWithAndFirstNameStartingWith(eq(""), eq(""), any(Pageable.class));
+	}
+
+	@Test
+	void processFindFormByFirstAndLastName() throws Exception {
+		Page<Owner> tasks = new PageImpl<>(List.of(george()));
+		when(this.owners.findByLastNameStartingWithAndFirstNameStartingWith(eq("Fra"), eq("Geo"), any(Pageable.class)))
+			.thenReturn(tasks);
+		mockMvc.perform(get("/owners?page=1").param("lastName", "Fra").param("firstName", "Geo"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(view().name("redirect:/owners/" + TEST_OWNER_ID));
 	}
 
 	@Test
 	void processFindFormNoOwnersFound() throws Exception {
 		Page<Owner> tasks = new PageImpl<>(List.of());
-		when(this.owners.findByLastNameStartingWith(eq("Unknown Surname"), any(Pageable.class))).thenReturn(tasks);
+		when(this.owners.findByLastNameStartingWithAndFirstNameStartingWith(eq("Unknown Surname"), eq(""),
+				any(Pageable.class)))
+			.thenReturn(tasks);
 		mockMvc.perform(get("/owners?page=1").param("lastName", "Unknown Surname"))
 			.andExpect(status().isOk())
 			.andExpect(model().attributeHasFieldErrors("owner", "lastName"))
 			.andExpect(model().attributeHasFieldErrorCode("owner", "lastName", "notFound"))
 			.andExpect(view().name("owners/findOwners"));
 
+	}
+
+	@Test
+	void runSavedOwnerQueryShowsScriptResultOnFindOwnersPage() throws Exception {
+		SavedOwnerQueryScript savedQuery = new SavedOwnerQueryScript();
+		savedQuery.setId(7);
+		savedQuery.setName("Madison Owners");
+		given(this.savedOwnerQueries.execute(7)).willReturn(new SavedOwnerQueryScriptService.SavedOwnerQueryExecution(
+				savedQuery, List.of(Map.of("id", 1, "firstName", "George", "lastName", "Franklin"),
+						Map.of("id", 2, "firstName", "Betty", "lastName", "Davis"))));
+
+		mockMvc.perform(get("/owners/saved-queries/7"))
+			.andExpect(status().isOk())
+			.andExpect(model().attribute("savedOwnerQueryResultName", is("Madison Owners")))
+			.andExpect(model().attributeExists("savedOwnerQueryResultHtml"))
+			.andExpect(model().attributeExists("savedOwnerQueryResultJson"))
+			.andExpect(view().name("owners/findOwners"))
+			.andExpect(content().string(containsString("Madison Owners")))
+			.andExpect(content().string(containsString("George Franklin")))
+			.andExpect(content().string(containsString("Betty Davis")))
+			.andExpect(content().string(containsString("Script Result")))
+			.andExpect(content().string(containsString("Save JSON")));
+	}
+
+	@Test
+	void deleteSavedOwnerQueryRedirectsToFindOwners() throws Exception {
+		mockMvc.perform(post("/owners/saved-queries/7/delete"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(flash().attribute("message", "Saved owner query deleted."))
+			.andExpect(redirectedUrl("/owners/find"));
 	}
 
 	@Test

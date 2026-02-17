@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+
+<html xmlns:th="https://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'scripting')}">
+
+<body>
+
+  <style>
+    .script-page {
+      --script-page-top-offset: 0px;
+      --script-sidebar-expanded-width: 264px;
+      --script-sidebar-collapsed-width: 42px;
+      --script-sidebar-width: var(--script-sidebar-expanded-width);
+      --script-compose-reserve: 320px;
+      width: 100%;
+      min-height: calc(100dvh - var(--script-page-top-offset));
+      margin: 0;
+      position: relative;
+      background: #fff;
+    }
+
+    .script-page.is-sidebar-collapsed {
+      --script-sidebar-width: var(--script-sidebar-collapsed-width);
+    }
+
+    .script-chat-shell {
+      position: relative;
+      height: calc(100dvh - var(--script-page-top-offset));
+      min-height: calc(100dvh - var(--script-page-top-offset));
+    }
+
+    .script-session-sidebar {
+      position: fixed;
+      top: var(--script-page-top-offset);
+      left: 0;
+      bottom: 0;
+      width: var(--script-sidebar-expanded-width);
+      display: flex;
+      flex-direction: column;
+      padding: 22px 18px;
+      background: #f7fafc;
+      border-right: 1px solid #d9e2ec;
+      overflow: hidden;
+      z-index: 20;
+      transition: width 0.2s ease, padding 0.2s ease;
+    }
+
+    .script-session-sidebar.is-collapsed {
+      width: var(--script-sidebar-collapsed-width);
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+
+    .script-session-sidebar.is-collapsed .script-session-sidebar-body,
+    .script-session-sidebar.is-collapsed .script-new-session-link {
+      display: none;
+    }
+
+    .script-session-sidebar.is-collapsed .script-session-sidebar-top {
+      justify-content: center;
+    }
+
+    .script-session-sidebar-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .script-session-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      min-height: 22px;
+      border: none;
+      background: transparent;
+      color: #52606d;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 0;
+    }
+
+    .script-session-toggle:hover,
+    .script-session-toggle:focus {
+      color: #102a43;
+      outline: none;
+      text-decoration: none;
+    }
+
+    .script-session-sidebar-body {
+      margin-top: 22px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .script-session-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #7b8794;
+    }
+
+    .script-session-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+      align-content: start;
+    }
+
+    .script-session-link {
+      width: 100%;
+      text-align: left;
+      border: 1px solid #d9e2ec;
+      border-radius: 12px;
+      background: #f8fbff;
+      color: #102a43;
+      padding: 12px 14px;
+      transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .script-session-link:hover,
+    .script-session-link:focus {
+      background: #eef6ff;
+      border-color: #7fb3d5;
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .script-session-link.active {
+      background: #d9ecff;
+      border-color: #20639b;
+      box-shadow: inset 0 0 0 1px rgba(32, 99, 155, 0.18);
+    }
+
+    .script-session-link-name {
+      display: block;
+      font-weight: 600;
+    }
+
+    .script-session-link-count {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #486581;
+    }
+
+    .script-new-session-link {
+      display: inline-flex;
+      align-items: center;
+      border: none;
+      background: transparent;
+      padding: 0;
+      color: #102a43;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .script-new-session-link:hover,
+    .script-new-session-link:focus {
+      color: #20639b;
+      outline: none;
+      text-decoration: none;
+    }
+
+    .script-chat-main {
+      box-sizing: border-box;
+      margin-left: var(--script-sidebar-width);
+      height: calc(100dvh - var(--script-page-top-offset));
+      min-height: calc(100dvh - var(--script-page-top-offset));
+      padding: 28px 24px var(--script-compose-reserve);
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+      transition: margin-left 0.2s ease;
+    }
+
+    .script-compose-panel {
+      border: 1px solid #d9e2ec;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      background: #fff;
+    }
+
+    .script-chat-history {
+      max-width: 980px;
+      margin: 0 auto;
+      padding-bottom: 40px;
+      background: transparent;
+    }
+
+    .script-chat-turn + .script-chat-turn {
+      margin-top: 22px;
+    }
+
+    .script-user-bubble {
+      margin-left: 14%;
+      margin-bottom: 12px;
+      padding: 14px 18px;
+      border-radius: 18px 18px 4px 18px;
+      background: linear-gradient(135deg, #dde6ec, #cfdbe3);
+      color: #243b53;
+      box-shadow: 0 8px 18px rgba(71, 85, 105, 0.12);
+      white-space: pre-wrap;
+      text-align: right;
+    }
+
+    .script-assistant-card {
+      margin-right: 14%;
+      padding: 18px;
+      border-radius: 18px 18px 18px 4px;
+      background: #fff;
+      border: 1px solid #d9e2ec;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .script-assistant-card.pending {
+      background: #f8fbff;
+      border-style: dashed;
+    }
+
+    .script-assistant-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .script-name-toggle {
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: #102a43;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .script-name-toggle:hover,
+    .script-name-toggle:focus {
+      color: #20639b;
+      text-decoration: none;
+      outline: none;
+    }
+
+    .script-name-toggle::after {
+      content: 'Show Script';
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #486581;
+    }
+
+    .script-name-toggle[aria-expanded='true']::after {
+      content: 'Hide Script';
+    }
+
+    .script-assistant-header-meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .script-chip {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 600;
+      padding: 4px 10px;
+      box-shadow: none;
+    }
+
+    .script-chip-modifies {
+      background: #fdf1df;
+      border-color: #efd3a8;
+      color: #8a4b08;
+    }
+
+    .script-chip-query {
+      background: #edf4ff;
+      border-color: #c9d9f2;
+      color: #1f4f82;
+    }
+
+    .script-code-block {
+      position: relative;
+      border: 1px solid #d9e2ec;
+      border-radius: 14px;
+      background: #102a43;
+      color: #f0f4f8;
+      overflow: hidden;
+    }
+
+    .script-code-block pre {
+      margin: 0;
+      padding: 16px 56px 16px 16px;
+      background: transparent;
+      color: inherit;
+      border: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .script-code-copy-button {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 30px;
+      padding: 0;
+      border-radius: 8px;
+      border-color: #bcccdc;
+      background: #f8fbff;
+      color: #334e68;
+    }
+
+    .script-code-copy-button:hover,
+    .script-code-copy-button:focus {
+      border-color: #9fb3c8;
+      background: #ffffff;
+      color: #102a43;
+      outline: none;
+    }
+
+    .script-copy-icon {
+      position: relative;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+    }
+
+    .script-copy-icon::before,
+    .script-copy-icon::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 12px;
+      border: 1.5px solid currentColor;
+      border-radius: 2px;
+      background: #f8fbff;
+    }
+
+    .script-copy-icon::before {
+      top: 3px;
+      left: 2px;
+      opacity: 0.72;
+    }
+
+    .script-copy-icon::after {
+      top: 1px;
+      left: 5px;
+      background: #f8fbff;
+    }
+
+    .script-thinking-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #486581;
+      font-weight: 600;
+    }
+
+    .script-thinking-dots {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .script-thinking-dots span {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #20639b;
+      opacity: 0.25;
+      animation: script-thinking-pulse 1.2s infinite ease-in-out;
+    }
+
+    .script-thinking-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .script-thinking-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes script-thinking-pulse {
+      0%, 80%, 100% {
+        opacity: 0.25;
+        transform: translateY(0);
+      }
+
+      40% {
+        opacity: 1;
+        transform: translateY(-2px);
+      }
+    }
+
+    .script-section {
+      margin-top: 18px;
+    }
+
+    .script-section-title {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #486581;
+      margin-bottom: 10px;
+    }
+
+    .script-operation-list {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .script-operation-list li + li {
+      margin-top: 8px;
+    }
+
+    .script-warning-text {
+      color: #b54708;
+      margin-left: 8px;
+    }
+
+    .script-note {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #7c2d12;
+    }
+
+    .script-section-header,
+    .script-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .script-section-header-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .script-section-header .script-section-title,
+    .script-result-header .script-section-title {
+      margin-bottom: 0;
+    }
+
+    .script-refresh-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 26px;
+      padding: 0;
+    }
+
+    .script-refresh-button .fa {
+      line-height: 1;
+    }
+
+    .script-result-panel {
+      margin-bottom: 0;
+      border-radius: 14px;
+      border-color: #d9e2ec;
+      overflow: hidden;
+    }
+
+    .script-inline-alert {
+      margin-top: 16px;
+      margin-bottom: 0;
+    }
+
+    .script-actions {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .script-compose-rail {
+      position: fixed;
+      left: calc(var(--script-sidebar-width) + 24px);
+      right: 24px;
+      bottom: 24px;
+      z-index: 30;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      transition: left 0.2s ease;
+    }
+
+    .script-compose-panel {
+      width: min(100%, 980px);
+      pointer-events: auto;
+    }
+
+    .script-compose-panel .panel-body {
+      padding: 20px 22px 22px;
+    }
+
+    .script-prompt-row {
+      display: block;
+    }
+
+    .script-prompt-input {
+      display: block;
+      width: 100%;
+      min-height: 40px;
+      max-height: 220px;
+      padding-top: 9px;
+      padding-bottom: 9px;
+      line-height: 1.35;
+      resize: none;
+      overflow-y: hidden;
+    }
+
+    .script-prompt-footer {
+      margin-top: 10px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .script-prompt-submit {
+      flex: 0 0 auto;
+      min-width: 112px;
+      height: 40px;
+    }
+
+    .script-prompt-submit[disabled] {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+
+    .script-compose-examples {
+      flex: 1;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #52606d;
+    }
+
+    .script-compose-example-button {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      text-decoration: none;
+    }
+
+    .script-compose-example-button:hover,
+    .script-compose-example-button:focus {
+      color: #1f4f82;
+      outline: none;
+      text-decoration: underline;
+    }
+
+    .script-chat-main.is-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .script-chat-main.is-empty .script-chat-history {
+      display: none;
+    }
+
+    .script-chat-main.is-empty .script-compose-rail {
+      position: static;
+      left: auto;
+      right: auto;
+      bottom: auto;
+      width: min(100%, 980px);
+      display: block;
+      pointer-events: auto;
+    }
+
+    .script-chat-main.is-empty .script-compose-panel {
+      width: min(100%, 980px);
+      margin: 0 auto;
+    }
+
+    @media (max-width: 991px) {
+      .script-page {
+        min-height: 0;
+      }
+
+      .script-chat-shell {
+        height: auto;
+        min-height: 0;
+      }
+
+      .script-session-sidebar {
+        position: static;
+        width: 100%;
+        min-height: auto;
+        border-right: none;
+        border-bottom: 1px solid #d9e2ec;
+        padding-bottom: 18px;
+      }
+
+      .script-session-sidebar.is-collapsed {
+        width: 100%;
+      }
+
+      .script-session-sidebar.is-collapsed .script-new-session-link {
+        display: inline-flex;
+      }
+
+      .script-session-sidebar.is-collapsed .script-session-sidebar-top {
+        justify-content: space-between;
+      }
+
+      .script-chat-main {
+        margin-left: 0;
+        height: auto;
+        padding-left: 0;
+        padding-top: 20px;
+        padding-bottom: 20px;
+        overflow-y: visible;
+      }
+
+      .script-user-bubble,
+      .script-assistant-card {
+        margin-left: 0;
+        margin-right: 0;
+      }
+
+      .script-chat-history {
+        max-width: none;
+        padding-bottom: 24px;
+      }
+
+      .script-compose-rail,
+      .script-chat-main.is-empty .script-compose-rail {
+        position: static;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        display: block;
+        pointer-events: auto;
+        margin-top: 24px;
+      }
+
+      .script-compose-panel,
+      .script-chat-main.is-empty .script-compose-panel {
+        width: 100%;
+      }
+
+      .script-prompt-footer {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .script-prompt-submit {
+        width: 100%;
+      }
+    }
+  </style>
+
+  <form th:object="${scriptForm}" method="post" class="form-horizontal script-page" id="scripting-form"
+    th:attr="data-has-pending-generations=${hasPendingGenerations}">
+    <input type="hidden" th:field="*{sessionsState}" />
+    <input type="hidden" th:field="*{activeSessionId}" />
+    <input type="hidden" th:field="*{runtimeId}" />
+
+    <div class="script-chat-shell">
+      <aside class="script-session-sidebar" id="script-session-sidebar">
+        <div class="script-session-sidebar-top">
+          <button type="submit" class="btn btn-link script-new-session-link" th:formaction="@{/scripting/new-session}"
+            th:text="#{newSession}">New Session</button>
+          <button type="button" class="script-session-toggle" id="script-session-toggle"
+            aria-controls="script-session-sidebar-body" aria-expanded="true"
+            th:attr="aria-label=#{collapseSessions},title=#{collapseSessions},data-expand-label=#{expandSessions},data-collapse-label=#{collapseSessions}">&#x2190;</button>
+        </div>
+        <div class="script-session-sidebar-body" id="script-session-sidebar-body">
+          <div class="script-session-section-label" th:text="#{recentSessions}">Recent</div>
+          <div class="script-session-list">
+            <button type="submit" class="script-session-link" th:each="chatSession : ${sessions}"
+              th:classappend="${chatSession.id == scriptForm.activeSessionId} ? ' active'"
+              th:formaction="@{/scripting/select-session}" name="selectedSessionId" th:value="${chatSession.id}">
+              <span class="script-session-link-name" th:text="${chatSession.name}">Session 1</span>
+              <span class="script-session-link-count"
+                th:text="${chatSession.entries.size()} + ' messages'">0 messages</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <section class="script-chat-main" th:classappend="${#lists.isEmpty(activeChatEntries)} ? ' is-empty' : ' has-history'">
+        <div id="chat-history-container" class="script-chat-history">
+          <div th:each="entry : ${activeChatEntries}" class="script-chat-turn" th:attr="data-entry-id=${entry.id}">
+              <div class="script-user-bubble" th:text="${entry.prompt}">Show owners in Madison.</div>
+              <div class="script-assistant-card" th:classappend="${entry.pending} ? ' pending'">
+                <div class="script-thinking-status" th:if="${entry.pending}">
+                  <span th:text="#{thinking}">Thinking</span>
+                  <span class="script-thinking-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+                </div>
+
+                <div class="script-assistant-header" th:if="${entry.generatedScript}">
+                  <div>
+                    <button type="button" class="script-name-toggle"
+                      th:attr="aria-controls=${'history-script-panel-' + entry.id},aria-expanded='false'"
+                      onclick="toggleScriptText(this);">
+                      <span th:text="${entry.scriptName}">Generated Script</span>
+                    </button>
+                  </div>
+                  <div class="script-assistant-header-meta">
+                    <span class="label script-chip script-chip-modifies" th:if="${entry.modificationScript}" th:text="#{modifiesData}">Modifies data</span>
+                    <span class="label script-chip script-chip-query" th:if="${entry.ownerQueryScript}"
+                      th:text="#{queryOnly}">Query only</span>
+                  </div>
+                </div>
+
+                <div class="script-code-block" hidden th:if="${entry.generatedScript}" th:id="${'history-script-panel-' + entry.id}">
+                  <button class="btn btn-default btn-xs script-code-copy-button" type="button"
+                    th:data-copy-target="${'history-script-text-' + entry.id}" onclick="copyScriptText(this);"
+                    th:attr="aria-label=#{copyScriptText},title=#{copyScriptText}">
+                    <span class="script-copy-icon" aria-hidden="true"></span>
+                    <span class="sr-only" th:text="#{copyScriptText}">Copy Script Text</span>
+                  </button>
+                  <pre th:id="${'history-script-text-' + entry.id}" th:text="${entry.scriptText}">api.ownersApi.findByCityStartingWith('Madison');</pre>
+                </div>
+
+                <div class="alert alert-danger script-inline-alert" th:if="${entry.previewError}" th:text="${entry.previewError}">
+                  Script preview failed
+                </div>
+                <div class="alert alert-info script-inline-alert" th:if="${entry.previewMessage}" th:text="${entry.previewMessage}">
+                  No modifications to preview. The script did not request any changes.
+                </div>
+
+                <div class="script-section" th:if="${entry.previewOperations != null and !#lists.isEmpty(entry.previewOperations)}">
+                  <div class="script-section-header">
+                    <span class="script-section-title" th:text="#{previewModifications}">Preview Modifications</span>
+                    <button type="submit" class="btn btn-default btn-xs script-refresh-button"
+                      th:formaction="@{/scripting/refresh-preview}" name="targetEntryId" th:value="${entry.id}"
+                      th:attr="aria-label=#{refreshPreview},title=#{refreshPreview}">
+                      <span class="fa fa-refresh" aria-hidden="true"></span>
+                      <span class="sr-only" th:text="#{refreshPreview}">Refresh preview</span>
+                    </button>
+                  </div>
+                  <ul class="script-operation-list">
+                    <li th:each="operation : ${entry.previewOperations}">
+                      <th:block th:each="segment : ${operation.segments}">
+                        <a th:if="${segment.ownerId != null}" th:href="@{/owners/__${segment.ownerId}__}" th:text="${segment.text}">George Franklin</a>
+                        <span th:unless="${segment.ownerId != null}" th:text="${segment.text}">Add owner: George Franklin, Madison, 6085551023</span>
+                      </th:block>
+                      <span th:if="${operation.warningText != null}" class="script-warning-text"
+                        th:text="${operation.warningText}">[Missing required fields: address]</span>
+                    </li>
+                  </ul>
+                  <div class="script-note" th:if="${entry.previewHasWarnings}" th:text="#{previewIncomplete}">
+                    Preview may be incomplete.
+                  </div>
+                </div>
+
+                <div class="script-section" th:if="${entry.scriptResultHtml}">
+                  <div class="script-result-header">
+                    <span class="script-section-title" th:text="#{scriptResult}">Script Result</span>
+                    <div class="script-section-header-actions">
+                      <button type="submit" class="btn btn-default btn-xs script-refresh-button"
+                        th:formaction="@{/scripting/refresh-preview}" name="targetEntryId" th:value="${entry.id}"
+                        th:attr="aria-label=#{refreshPreview},title=#{refreshPreview}">
+                        <span class="fa fa-refresh" aria-hidden="true"></span>
+                        <span class="sr-only" th:text="#{refreshPreview}">Refresh preview</span>
+                      </button>
+                      <button type="button" class="btn btn-default btn-xs" th:if="${entry.scriptResultJson}"
+                        th:data-json-target="${'script-result-json-' + entry.id}" th:data-download-name="${entry.scriptName}"
+                        th:text="#{saveJson}" onclick="saveScriptResultJsonFromButton(this);">Save JSON</button>
+                    </div>
+                  </div>
+                  <div class="panel panel-default script-result-panel">
+                    <div class="panel-body" th:utext="${entry.scriptResultHtml}"></div>
+                  </div>
+                  <textarea hidden th:if="${entry.scriptResultJson}" th:id="${'script-result-json-' + entry.id}"
+                    th:text="${entry.scriptResultJson}"></textarea>
+                </div>
+
+                <div class="alert alert-success script-inline-alert" th:if="${entry.executionSuccessMessage}"
+                  th:text="${entry.executionSuccessMessage}">Script executed successfully.</div>
+                <div class="alert alert-success script-inline-alert" th:if="${entry.ownerQuerySaveSuccessMessage}"
+                  th:text="${entry.ownerQuerySaveSuccessMessage}">Added to Find Owners page.</div>
+                <div class="alert alert-danger script-inline-alert" th:if="${entry.executionError}"
+                  th:text="${entry.executionError}">Script execution failed</div>
+
+                <div class="script-actions" th:if="${entry.executable or entry.canAddToFindOwnersPage}">
+                  <button type="submit" class="btn btn-primary" th:formaction="@{/scripting/execute}" name="targetEntryId"
+                    th:if="${entry.executable}" th:value="${entry.id}"
+                    th:attr="data-repeated-execution=${entry.repeatedExecution},onclick=|return confirmScriptExecution(this);|"
+                    th:text="#{execute}">Execute</button>
+                  <button type="submit" class="btn btn-primary" th:formaction="@{/scripting/save-owner-query}"
+                    th:if="${entry.canAddToFindOwnersPage}" name="targetEntryId" th:value="${entry.id}"
+                    th:attr="data-repeated-owner-query-save=${entry.repeatedOwnerQuerySave},onclick=|return confirmOwnerQuerySave(this);|"
+                    th:text="#{addToFindOwnersPage}">Add to Find Owners page</button>
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <div class="script-compose-rail">
+          <div class="panel panel-default script-compose-panel">
+            <div class="panel-body">
+              <div class="alert alert-danger" th:if="${scriptExecutionError}" th:text="${scriptExecutionError}">Script execution failed</div>
+              <div class="alert alert-danger" th:if="${ownerQuerySaveError}" th:text="${ownerQuerySaveError}">Could not save owner query.</div>
+
+              <div class="script-prompt-row">
+                <textarea class="form-control script-prompt-input" th:field="*{llmPrompt}" rows="1"
+                  th:attr="placeholder=#{llmPromptPlaceholder}"></textarea>
+              </div>
+              <div class="script-prompt-footer">
+                <div class="script-compose-examples">
+                  <button type="button" class="script-compose-example-button"
+                    th:attr="data-prompt-example=#{scriptingAgentExampleOwnersPrompt}" th:text="#{scriptingAgentExampleOwners}">
+                    Example: "Show owners in Madison with their telephone numbers"
+                  </button>
+                  <button type="button" class="script-compose-example-button"
+                    th:attr="data-prompt-example=#{scriptingAgentExampleAddOwnerPrompt}" th:text="#{scriptingAgentExampleAddOwner}">
+                    Example: "Add John Doe, who lives at 5520 Lacy Road in Fitchburg, with telephone number 6085558763"
+                  </button>
+                  <button type="button" class="script-compose-example-button"
+                    th:attr="data-prompt-example=#{scriptingAgentExampleAddPetVisitPrompt}" th:text="#{scriptingAgentExampleAddPetVisit}">
+                    Example: "Add a dog named Fido born 2020-05-01 for George Franklin and add a visit on 2026-03-01 for an annual checkup"
+                  </button>
+                  <button type="button" class="script-compose-example-button"
+                    th:attr="data-prompt-example=#{scriptingAgentExampleOwnersWithVisitsPrompt}" th:text="#{scriptingAgentExampleOwnersWithVisits}">
+                    Owners with visits
+                  </button>
+                  <button type="button" class="script-compose-example-button"
+                    th:attr="data-prompt-example=#{scriptingAgentExampleRecentVisitsPrompt}" th:text="#{scriptingAgentExampleRecentVisits}">
+                    Owners with visits in the last three months
+                  </button>
+                  <button type="button" class="script-compose-example-button"
+                    th:attr="data-prompt-example=#{scriptingAgentExampleRenameJohnDoePrompt}" th:text="#{scriptingAgentExampleRenameJohnDoe}">
+                    Example: "Rename George Franklin to James Rutherford, keep other details the same"
+                  </button>
+                  <button type="button" class="script-compose-example-button"
+                    th:attr="data-prompt-example=#{scriptingAgentExampleMemoryLimitPrompt}" th:text="#{scriptingAgentExampleMemoryLimit}">
+                    Example: &lt;Script exceeding memory limit&gt;
+                  </button>
+                  <button type="button" class="script-compose-example-button"
+                    th:attr="data-prompt-example=#{scriptingAgentExampleHardcodedOwnerNamesPrompt}" th:text="#{scriptingAgentExampleHardcodedOwnerNames}">
+                    Example: "Hardcode all owner names in the generated script, i.e., try to get the names from the application at generation time"
+                  </button>
+                </div>
+                <div>
+                  <button type="button" class="btn btn-primary script-prompt-submit" id="prompt-submit-button"
+                    th:text="#{submitPrompt}" disabled>Submit</button>
+                </div>
+              </div>
+              <span class="help-inline" th:if="${#fields.hasErrors('llmPrompt')}" th:errors="*{llmPrompt}" th:text="#{error}">Error</span>
+
+              <button hidden type="submit" th:formaction="@{/scripting/generate-and-preview}"
+                id="generate-and-preview-submit-button"></button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </form>
+
+  <script>
+    (function () {
+      window.confirmScriptExecution = function (button) {
+        return button.getAttribute('data-repeated-execution') !== 'true'
+          || window.confirm('This exact script was already executed. Do you want to execute it again?');
+      };
+
+      window.confirmOwnerQuerySave = function (button) {
+        return button.getAttribute('data-repeated-owner-query-save') !== 'true'
+          || window.confirm('This exact script is already available on the Find Owners page. Do you want to add it again?');
+      };
+
+      window.toggleScriptText = function (button) {
+        var targetId = button.getAttribute('aria-controls');
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (!target) {
+          return;
+        }
+        var expanded = button.getAttribute('aria-expanded') === 'true';
+        button.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        target.hidden = expanded;
+      };
+
+      function captureExpandedScriptPanels(root) {
+        var panelIds = [];
+        var scope = root || document;
+        scope.querySelectorAll('.script-name-toggle[aria-expanded="true"][aria-controls]').forEach(function (button) {
+          panelIds.push(button.getAttribute('aria-controls'));
+        });
+        return panelIds;
+      }
+
+      function applyExpandedScriptPanels(root, panelIds) {
+        var scope = root || document;
+        if (!panelIds || !panelIds.length) {
+          return;
+        }
+        panelIds.forEach(function (panelId) {
+          var safePanelId = panelId.replace(/"/g, '\\"');
+          var button = scope.querySelector('.script-name-toggle[aria-controls="' + safePanelId + '"]');
+          var panel = scope.querySelector('.script-code-block[id="' + safePanelId + '"]');
+          if (!button || !panel) {
+            return;
+          }
+          button.setAttribute('aria-expanded', 'true');
+          panel.hidden = false;
+        });
+      }
+
+      window.copyScriptText = function (button) {
+        var targetId = button.getAttribute('data-copy-target');
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (!target) {
+          return;
+        }
+        var text = target.innerText || target.textContent || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text);
+          return;
+        }
+        var selection = window.getSelection();
+        var range = document.createRange();
+        range.selectNodeContents(target);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        try {
+          document.execCommand('copy');
+        }
+        finally {
+          selection.removeAllRanges();
+        }
+      };
+
+      window.saveScriptResultJsonFromButton = function (button) {
+        var targetId = button.getAttribute('data-json-target');
+        var jsonElement = targetId ? document.getElementById(targetId) : null;
+        if (!jsonElement) {
+          return;
+        }
+        var baseName = button.getAttribute('data-download-name') || 'script-result';
+        baseName = baseName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        var blob = new Blob([jsonElement.value], { type: 'application/json' });
+        var downloadLink = document.createElement('a');
+        downloadLink.href = window.URL.createObjectURL(blob);
+        downloadLink.download = (baseName || 'script-result') + '-result.json';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        window.URL.revokeObjectURL(downloadLink.href);
+      };
+
+      function chatScrollContainer() {
+        return document.querySelector('.script-chat-main');
+      }
+
+      function chatUsesWindowScroll(container) {
+        return !container || window.getComputedStyle(container).overflowY === 'visible';
+      }
+
+      function chatVisibleBottomOffset(container) {
+        if (!container) {
+          return window.innerHeight - 16;
+        }
+        var containerBounds = container.getBoundingClientRect();
+        var composeRail = document.querySelector('.script-compose-rail');
+        var composeRailBounds = composeRail ? composeRail.getBoundingClientRect() : null;
+        var visibleBottom = containerBounds.bottom;
+        if (composeRailBounds && composeRailBounds.top > containerBounds.top
+          && composeRailBounds.top < visibleBottom) {
+          visibleBottom = composeRailBounds.top;
+        }
+        return Math.max(0, visibleBottom - containerBounds.top - 16);
+      }
+
+      function scrollChatHistoryToBottom() {
+        var chatMain = chatScrollContainer();
+        if (chatMain && chatMain.classList.contains('is-empty')) {
+          return;
+        }
+        var chatTurns = document.querySelectorAll('#chat-history-container .script-chat-turn');
+        var lastChatTurn = chatTurns.length ? chatTurns[chatTurns.length - 1] : null;
+        if (!lastChatTurn) {
+          window.scrollTo(0, document.documentElement.scrollHeight);
+          return;
+        }
+        scrollElementAboveComposePanel(lastChatTurn, true);
+      }
+
+      function alignElementAboveComposePanel(element, forceAlign) {
+        if (!element) {
+          return;
+        }
+        var container = chatScrollContainer();
+        if (chatUsesWindowScroll(container)) {
+          var composeRail = document.querySelector('.script-compose-rail');
+          var composeRailBounds = composeRail ? composeRail.getBoundingClientRect() : null;
+          var composeRailPosition = composeRail ? window.getComputedStyle(composeRail).position : null;
+          var windowVisibleBottom = composeRailBounds && composeRailPosition === 'fixed'
+            && composeRailBounds.top > 0 ? Math.min(window.innerHeight, composeRailBounds.top) - 16
+              : window.innerHeight - 16;
+          var windowElementBounds = element.getBoundingClientRect();
+          var windowScrollDelta = windowElementBounds.bottom - windowVisibleBottom;
+          if (windowScrollDelta > 0 || forceAlign) {
+            window.scrollTo(0, Math.max(0, window.scrollY + windowScrollDelta));
+          }
+          return;
+        }
+        var containerBounds = container.getBoundingClientRect();
+        var visibleBottom = containerBounds.top + chatVisibleBottomOffset(container);
+        var elementBounds = element.getBoundingClientRect();
+        var scrollDelta = elementBounds.bottom - visibleBottom;
+        if (scrollDelta > 0 || forceAlign) {
+          container.scrollTop = Math.max(0, container.scrollTop + scrollDelta);
+        }
+      }
+
+      function scrollElementAboveComposePanel(element, forceAlign) {
+        alignElementAboveComposePanel(element, forceAlign);
+        window.requestAnimationFrame(function () {
+          alignElementAboveComposePanel(element, forceAlign);
+          window.requestAnimationFrame(function () {
+            alignElementAboveComposePanel(element, forceAlign);
+          });
+        });
+      }
+
+      function followPendingGenerationBottom() {
+        window.__scriptingFollowPendingGenerationBottom = true;
+      }
+
+      function stopFollowingPendingGenerationBottom() {
+        window.__scriptingFollowPendingGenerationBottom = false;
+      }
+
+      function isNearDocumentBottom() {
+        var container = chatScrollContainer();
+        if (!container || container.classList.contains('is-empty')) {
+          return false;
+        }
+        if (chatUsesWindowScroll(container)) {
+          var documentRemainingScroll = document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+          return documentRemainingScroll <= 120;
+        }
+        var remainingScroll = container.scrollHeight - container.scrollTop - container.clientHeight;
+        return remainingScroll <= 120;
+      }
+
+      function captureVisibleChatAnchor() {
+        var container = chatScrollContainer();
+        if (!container) {
+          return null;
+        }
+        var containerBounds = container.getBoundingClientRect();
+        var visibleTop = chatUsesWindowScroll(container) ? 0 : containerBounds.top;
+        var visibleBottom = chatUsesWindowScroll(container) ? window.innerHeight
+          : containerBounds.top + chatVisibleBottomOffset(container);
+        var chatTurns = document.querySelectorAll('#chat-history-container .script-chat-turn[data-entry-id]');
+        for (var index = 0; index < chatTurns.length; index++) {
+          var bounds = chatTurns[index].getBoundingClientRect();
+          if (bounds.bottom > visibleTop && visibleBottom > bounds.top) {
+            return {
+              entryId: chatTurns[index].getAttribute('data-entry-id'),
+              viewportTop: Math.round(bounds.top)
+            };
+          }
+        }
+        return null;
+      }
+
+      function restoreVisibleChatAnchor(anchor) {
+        if (!anchor || !anchor.entryId) {
+          return;
+        }
+        window.requestAnimationFrame(function () {
+          var container = chatScrollContainer();
+          var entrySelector = '.script-chat-turn[data-entry-id="' + anchor.entryId.replace(/"/g, '\\"') + '"]';
+          var entryElement = document.querySelector(entrySelector);
+          if (!entryElement || !container) {
+            return;
+          }
+          var currentTop = entryElement.getBoundingClientRect().top;
+          if (chatUsesWindowScroll(container)) {
+            window.scrollTo(0, Math.max(0, window.scrollY + currentTop - anchor.viewportTop));
+            return;
+          }
+          container.scrollTop = Math.max(0, container.scrollTop + currentTop - anchor.viewportTop);
+        });
+      }
+
+      function capturePendingGenerationScrollState() {
+        return {
+          followBottom: window.__scriptingFollowPendingGenerationBottom || isNearDocumentBottom(),
+          anchor: captureVisibleChatAnchor()
+        };
+      }
+
+      function applyPendingGenerationScrollState(scrollState) {
+        if (!scrollState) {
+          return;
+        }
+        if (scrollState.followBottom) {
+          scrollChatHistoryToBottom();
+          return;
+        }
+        stopFollowingPendingGenerationBottom();
+        restoreVisibleChatAnchor(scrollState.anchor);
+      }
+
+      function storePendingScrollIntent(intent) {
+        try {
+          window.sessionStorage.setItem('scriptingFormScrollIntent', JSON.stringify(intent));
+        }
+        catch (error) {
+          // Ignore storage failures and fall back to the default scroll behavior.
+        }
+      }
+
+      function consumePendingScrollIntent() {
+        try {
+          var storedValue = window.sessionStorage.getItem('scriptingFormScrollIntent');
+          if (!storedValue) {
+            return null;
+          }
+          window.sessionStorage.removeItem('scriptingFormScrollIntent');
+          return JSON.parse(storedValue);
+        }
+        catch (error) {
+          return null;
+        }
+      }
+
+      function updatePendingScrollIntent(submitter) {
+        if (!submitter) {
+          return;
+        }
+
+        var formAction = submitter.getAttribute('formaction') || '';
+        if (formAction.indexOf('/scripting/execute') !== -1 || formAction.indexOf('/scripting/save-owner-query') !== -1) {
+          var entryElement = submitter.closest('.script-chat-turn[data-entry-id]');
+          storePendingScrollIntent({
+            type: 'entry',
+            entryId: submitter.value || '',
+            entryViewportTop: entryElement ? Math.round(entryElement.getBoundingClientRect().top) : null
+          });
+          return;
+        }
+
+        if (formAction.indexOf('/scripting/select-session') !== -1
+          || formAction.indexOf('/scripting/new-session') !== -1
+          || formAction.indexOf('/scripting/generate-and-preview') !== -1) {
+          storePendingScrollIntent({
+            type: 'bottom'
+          });
+        }
+      }
+
+      function restoreChatHistoryScroll() {
+        var chatMain = chatScrollContainer();
+        if (chatMain && chatMain.classList.contains('is-empty')) {
+          return;
+        }
+        var scrollIntent = consumePendingScrollIntent();
+        if (scrollIntent && scrollIntent.type === 'entry' && scrollIntent.entryId) {
+          var entrySelector = '.script-chat-turn[data-entry-id="' + scrollIntent.entryId.replace(/"/g, '\\"') + '"]';
+          var entryElement = document.querySelector(entrySelector);
+          if (entryElement && chatMain) {
+            window.requestAnimationFrame(function () {
+              var currentTop = entryElement.getBoundingClientRect().top;
+              var targetTop = typeof scrollIntent.entryViewportTop === 'number'
+                ? scrollIntent.entryViewportTop
+                : currentTop;
+              if (chatUsesWindowScroll(chatMain)) {
+                window.scrollTo(0, Math.max(0, window.scrollY + currentTop - targetTop));
+                return;
+              }
+              chatMain.scrollTop = Math.max(0, chatMain.scrollTop + currentTop - targetTop);
+            });
+            return;
+          }
+        }
+        scrollChatHistoryToBottom();
+      }
+
+      function readSessionSidebarCollapsed() {
+        try {
+          return window.sessionStorage.getItem('scriptingSessionSidebarCollapsed') === 'true';
+        }
+        catch (error) {
+          return false;
+        }
+      }
+
+      function storeSessionSidebarCollapsed(collapsed) {
+        try {
+          window.sessionStorage.setItem('scriptingSessionSidebarCollapsed', collapsed ? 'true' : 'false');
+        }
+        catch (error) {
+          // Ignore storage failures and keep the current in-memory state only.
+        }
+      }
+
+      function applySessionSidebarCollapsed(sidebar, toggleButton, collapsed) {
+        var scriptingForm = document.getElementById('scripting-form');
+        if (!sidebar || !toggleButton) {
+          return;
+        }
+        var expandLabel = toggleButton.getAttribute('data-expand-label') || 'Expand sessions';
+        var collapseLabel = toggleButton.getAttribute('data-collapse-label') || 'Collapse sessions';
+        if (scriptingForm) {
+          scriptingForm.classList.toggle('is-sidebar-collapsed', collapsed);
+        }
+        sidebar.classList.toggle('is-collapsed', collapsed);
+        toggleButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        toggleButton.textContent = collapsed ? '\u2192' : '\u2190';
+        toggleButton.setAttribute('aria-label', collapsed ? expandLabel : collapseLabel);
+        toggleButton.setAttribute('title', collapsed ? expandLabel : collapseLabel);
+      }
+
+      function syncViewportBoundedLayout() {
+        var scriptingForm = document.getElementById('scripting-form');
+        var scriptingNavbar = document.querySelector('.navbar-scripting-sticky') || document.querySelector('.navbar');
+        var composeRail = document.querySelector('.script-compose-rail');
+        if (!scriptingForm || window.innerWidth <= 991) {
+          if (scriptingForm) {
+            scriptingForm.style.removeProperty('--script-page-top-offset');
+            scriptingForm.style.removeProperty('--script-compose-reserve');
+          }
+          return;
+        }
+        var topOffset = scriptingNavbar ? Math.round(scriptingNavbar.getBoundingClientRect().height) : 0;
+        scriptingForm.style.setProperty('--script-page-top-offset', topOffset + 'px');
+        if (composeRail) {
+          var composeReserve = Math.round(composeRail.getBoundingClientRect().height) + 56;
+          scriptingForm.style.setProperty('--script-compose-reserve', composeReserve + 'px');
+        }
+      }
+
+      function renderPendingEntry(promptText) {
+        var chatHistoryContainer = document.getElementById('chat-history-container');
+        var chatMain = document.querySelector('.script-chat-main');
+        var scriptingForm = document.getElementById('scripting-form');
+        if (!chatHistoryContainer) {
+          return;
+        }
+
+        if (scriptingForm) {
+          scriptingForm.setAttribute('data-has-pending-generations', 'true');
+        }
+
+        if (chatMain) {
+          chatMain.classList.remove('is-empty');
+          chatMain.classList.add('has-history');
+        }
+
+        var emptyState = chatHistoryContainer.querySelector('.script-empty-state');
+        if (emptyState) {
+          emptyState.remove();
+        }
+
+        var chatTurn = document.createElement('div');
+        chatTurn.className = 'script-chat-turn script-chat-turn-pending';
+
+        var userBubble = document.createElement('div');
+        userBubble.className = 'script-user-bubble';
+        userBubble.textContent = promptText;
+        chatTurn.appendChild(userBubble);
+
+        var assistantCard = document.createElement('div');
+        assistantCard.className = 'script-assistant-card pending';
+
+        var thinkingStatus = document.createElement('div');
+        thinkingStatus.className = 'script-thinking-status';
+        thinkingStatus.appendChild(document.createTextNode('Thinking'));
+
+        var thinkingDots = document.createElement('span');
+        thinkingDots.className = 'script-thinking-dots';
+        thinkingDots.setAttribute('aria-hidden', 'true');
+        for (var index = 0; index < 3; index++) {
+          thinkingDots.appendChild(document.createElement('span'));
+        }
+        thinkingStatus.appendChild(thinkingDots);
+        assistantCard.appendChild(thinkingStatus);
+
+        chatTurn.appendChild(assistantCard);
+        chatHistoryContainer.appendChild(chatTurn);
+        syncViewportBoundedLayout();
+        scrollElementAboveComposePanel(chatTurn, true);
+      }
+
+      function capturePromptDraft() {
+        var promptInput = document.getElementById('llmPrompt');
+        if (!promptInput) {
+          return null;
+        }
+        return {
+          value: promptInput.value || '',
+          active: document.activeElement === promptInput,
+          selectionStart: typeof promptInput.selectionStart === 'number' ? promptInput.selectionStart : null,
+          selectionEnd: typeof promptInput.selectionEnd === 'number' ? promptInput.selectionEnd : null
+        };
+      }
+
+      function restorePromptDraft(draft) {
+        var promptInput = document.getElementById('llmPrompt');
+        if (!promptInput || !draft || !draft.value) {
+          return;
+        }
+        promptInput.value = draft.value;
+        if (typeof draft.selectionStart === 'number' && typeof draft.selectionEnd === 'number') {
+          promptInput.selectionStart = Math.min(draft.selectionStart, promptInput.value.length);
+          promptInput.selectionEnd = Math.min(draft.selectionEnd, promptInput.value.length);
+        }
+        promptInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (draft.active) {
+          promptInput.focus();
+        }
+      }
+
+      function parseReplacementForm(htmlText) {
+        var parser = new DOMParser();
+        var parsedDocument = parser.parseFromString(htmlText, 'text/html');
+        return parsedDocument.getElementById('scripting-form');
+      }
+
+      function formInputValue(form, inputId) {
+        var input = form ? form.querySelector('#' + inputId) : null;
+        return input ? input.value || '' : '';
+      }
+
+      function formFragmentHtml(form, selector) {
+        var element = form ? form.querySelector(selector) : null;
+        return element ? element.innerHTML : '';
+      }
+
+      function sameVisibleScriptingState(currentForm, replacementForm) {
+        return formFragmentHtml(currentForm, '#script-session-sidebar-body') === formFragmentHtml(replacementForm, '#script-session-sidebar-body')
+          && formFragmentHtml(currentForm, '#chat-history-container') === formFragmentHtml(replacementForm, '#chat-history-container')
+          && currentForm.className === replacementForm.className
+          && currentForm.getAttribute('data-has-pending-generations') === replacementForm.getAttribute('data-has-pending-generations');
+      }
+
+      function replaceScriptingForm(htmlText, afterReplace) {
+        var promptDraft = capturePromptDraft();
+        var expandedScriptPanels = captureExpandedScriptPanels();
+        var replacementForm = parseReplacementForm(htmlText);
+        var scriptingForm = document.getElementById('scripting-form');
+        if (!replacementForm || !scriptingForm) {
+          window.location.reload();
+          return;
+        }
+        applyExpandedScriptPanels(replacementForm, expandedScriptPanels);
+        scriptingForm.replaceWith(replacementForm);
+        initializeScriptingForm(true);
+        restorePromptDraft(promptDraft);
+        if (typeof afterReplace === 'function') {
+          afterReplace();
+          return;
+        }
+        restoreChatHistoryScroll();
+      }
+
+      function updatePromptSubmitState(scriptingForm, promptInput, promptSubmitButton) {
+        if (!promptInput || !promptSubmitButton) {
+          return;
+        }
+        var hasPrompt = !!(promptInput.value && promptInput.value.trim());
+        promptSubmitButton.disabled = !hasPrompt;
+      }
+
+      function autoResizePromptInput(promptInput) {
+        if (!promptInput) {
+          return;
+        }
+        promptInput.style.height = 'auto';
+        var minHeight = 40;
+        var maxHeight = 220;
+        var nextHeight = Math.max(minHeight, Math.min(promptInput.scrollHeight, maxHeight));
+        promptInput.style.height = nextHeight + 'px';
+        promptInput.style.overflowY = promptInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
+      }
+
+      function keepPromptCaretVisible(promptInput) {
+        if (!promptInput) {
+          return;
+        }
+        window.requestAnimationFrame(function () {
+          if (document.activeElement !== promptInput) {
+            return;
+          }
+          var hasSelection = typeof promptInput.selectionStart === 'number'
+            && typeof promptInput.selectionEnd === 'number';
+          if (!hasSelection) {
+            return;
+          }
+          var caretAtEnd = promptInput.selectionStart === promptInput.selectionEnd
+            && promptInput.selectionEnd === promptInput.value.length;
+          if (caretAtEnd) {
+            promptInput.scrollTop = promptInput.scrollHeight;
+          }
+        });
+      }
+
+      function randomId() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+          return window.crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (character) {
+          var random = Math.random() * 16 | 0;
+          var value = character === 'x' ? random : (random & 0x3 | 0x8);
+          return value.toString(16);
+        });
+      }
+
+      function activeSessionInput() {
+        return document.getElementById('activeSessionId');
+      }
+
+      function currentActiveSessionId() {
+        var activeInput = activeSessionInput();
+        return activeInput ? activeInput.value || '' : '';
+      }
+
+      function ensureActiveSessionId() {
+        var activeInput = activeSessionInput();
+        if (!activeInput) {
+          return '';
+        }
+        if (!activeInput.value) {
+          activeInput.value = randomId();
+        }
+        return activeInput.value;
+      }
+
+      function submitPromptAsync(scriptingForm, submitButton, promptInput) {
+        var promptText = promptInput.value ? promptInput.value.trim() : '';
+        if (!promptText) {
+          return;
+        }
+
+        var submittedSessionId = ensureActiveSessionId();
+        var formData = new URLSearchParams(new FormData(scriptingForm));
+        syncViewportBoundedLayout();
+        storePendingScrollIntent({ type: 'bottom' });
+        followPendingGenerationBottom();
+        promptInput.value = '';
+        promptInput.dispatchEvent(new Event('input', { bubbles: true }));
+        renderPendingEntry(promptText);
+        var promptSubmitButton = document.getElementById('prompt-submit-button');
+        updatePromptSubmitState(scriptingForm, promptInput, promptSubmitButton);
+        var targetUrl = submitButton.getAttribute('formaction') || window.location.pathname;
+
+        window.fetch(targetUrl, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'text/html',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error('Request failed');
+            }
+            return response.text();
+          })
+          .then(function (htmlText) {
+            if (!submittedSessionId || currentActiveSessionId() === submittedSessionId) {
+              refreshPendingGenerations();
+              return;
+            }
+            schedulePendingGenerationRefresh();
+          })
+          .catch(function () {
+            window.location.reload();
+          });
+      }
+
+      function submitEntryActionAsync(scriptingForm, submitButton) {
+        var targetUrl = submitButton.getAttribute('formaction') || window.location.pathname;
+        var targetEntryId = submitButton.value || '';
+        var targetEntry = targetEntryId
+          ? document.querySelector('.script-chat-turn[data-entry-id="' + targetEntryId.replace(/"/g, '\\"') + '"]')
+          : null;
+        var targetEntryViewportTop = targetEntry ? targetEntry.getBoundingClientRect().top : null;
+        var formData = new URLSearchParams(new FormData(scriptingForm));
+        if (submitButton.name) {
+          formData.append(submitButton.name, submitButton.value);
+        }
+
+        submitButton.disabled = true;
+        window.fetch(targetUrl, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'text/html',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error('Request failed');
+            }
+            return response.text();
+          })
+          .then(function (htmlText) {
+            replaceScriptingForm(htmlText, function () {
+              if (!targetEntryId) {
+                return;
+              }
+              var container = chatScrollContainer();
+              var updatedEntry = document.querySelector(
+                '.script-chat-turn[data-entry-id="' + targetEntryId.replace(/"/g, '\\"') + '"]');
+              if (!updatedEntry || !container || typeof targetEntryViewportTop !== 'number') {
+                return;
+              }
+              window.requestAnimationFrame(function () {
+                var currentTop = updatedEntry.getBoundingClientRect().top;
+                if (chatUsesWindowScroll(container)) {
+                  window.scrollTo(0, Math.max(0, window.scrollY + currentTop - targetEntryViewportTop));
+                  return;
+                }
+                container.scrollTop = Math.max(0, container.scrollTop + currentTop - targetEntryViewportTop);
+              });
+            });
+          })
+          .catch(function () {
+            window.location.reload();
+          });
+      }
+
+      function hasPendingGenerations() {
+        var scriptingForm = document.getElementById('scripting-form');
+        return scriptingForm && scriptingForm.getAttribute('data-has-pending-generations') === 'true';
+      }
+
+      function schedulePendingGenerationRefresh() {
+        if (!hasPendingGenerations()) {
+          return;
+        }
+        if (window.__scriptingPendingGenerationRefreshTimer) {
+          window.clearTimeout(window.__scriptingPendingGenerationRefreshTimer);
+        }
+        window.__scriptingPendingGenerationRefreshTimer = window.setTimeout(refreshPendingGenerations, 1200);
+      }
+
+      function refreshPendingGenerations() {
+        if (!hasPendingGenerations()) {
+          return;
+        }
+        var activeSessionId = currentActiveSessionId();
+        var targetUrl = '/scripting/state';
+        if (activeSessionId) {
+          targetUrl += '?activeSessionId=' + encodeURIComponent(activeSessionId);
+        }
+        window.fetch(targetUrl, {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: {
+            'Accept': 'text/html',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error('Request failed');
+            }
+            return response.text();
+          })
+          .then(function (htmlText) {
+            if (currentActiveSessionId() !== activeSessionId) {
+              schedulePendingGenerationRefresh();
+              return;
+            }
+            var scriptingForm = document.getElementById('scripting-form');
+            var replacementForm = parseReplacementForm(htmlText);
+            var expandedScriptPanels = captureExpandedScriptPanels(scriptingForm);
+            if (!replacementForm || !scriptingForm) {
+              window.location.reload();
+              return;
+            }
+            applyExpandedScriptPanels(replacementForm, expandedScriptPanels);
+            if (formInputValue(replacementForm, 'activeSessionId') !== activeSessionId) {
+              schedulePendingGenerationRefresh();
+              return;
+            }
+            if (sameVisibleScriptingState(scriptingForm, replacementForm)) {
+              scriptingForm.setAttribute('data-has-pending-generations',
+                replacementForm.getAttribute('data-has-pending-generations') || 'false');
+              schedulePendingGenerationRefresh();
+              return;
+            }
+            var scrollState = capturePendingGenerationScrollState();
+            replaceScriptingForm(htmlText, function () {
+              applyPendingGenerationScrollState(scrollState);
+              schedulePendingGenerationRefresh();
+            });
+          })
+          .catch(function () {
+            schedulePendingGenerationRefresh();
+          });
+      }
+
+      function initializeScriptingForm(skipScrollRestore) {
+        var scriptingForm = document.getElementById('scripting-form');
+        var promptInput = document.getElementById('llmPrompt');
+        var generateAndPreviewSubmitButton = document.getElementById('generate-and-preview-submit-button');
+        var promptSubmitButton = document.getElementById('prompt-submit-button');
+        var promptExampleButtons = document.querySelectorAll('[data-prompt-example]');
+        var sessionSidebar = document.getElementById('script-session-sidebar');
+        var sessionToggleButton = document.getElementById('script-session-toggle');
+        if (!window.__scriptingViewportBoundResizeListener) {
+          window.addEventListener('resize', syncViewportBoundedLayout);
+          window.__scriptingViewportBoundResizeListener = true;
+        }
+        if (scriptingForm && scriptingForm.getAttribute('data-pending-generation-scroll-bound') !== 'true') {
+          var chatScrollElement = chatScrollContainer();
+          if (chatScrollElement) {
+            chatScrollElement.addEventListener('scroll', function () {
+              if (window.__scriptingFollowPendingGenerationBottom && !isNearDocumentBottom()) {
+                stopFollowingPendingGenerationBottom();
+              }
+            }, { passive: true });
+          }
+          scriptingForm.setAttribute('data-pending-generation-scroll-bound', 'true');
+        }
+        if (!window.__scriptingPendingGenerationWindowScrollListener) {
+          window.addEventListener('scroll', function () {
+            if (window.__scriptingFollowPendingGenerationBottom && !isNearDocumentBottom()) {
+              stopFollowingPendingGenerationBottom();
+            }
+          }, { passive: true });
+          window.__scriptingPendingGenerationWindowScrollListener = true;
+        }
+        if (scriptingForm && scriptingForm.getAttribute('data-scroll-intent-bound') !== 'true') {
+          scriptingForm.addEventListener('submit', function (event) {
+            var submitter = event.submitter || document.activeElement;
+            var formAction = submitter ? (submitter.getAttribute('formaction') || '') : '';
+            if (formAction.indexOf('/scripting/execute') !== -1
+              || formAction.indexOf('/scripting/save-owner-query') !== -1
+              || formAction.indexOf('/scripting/refresh-preview') !== -1) {
+              event.preventDefault();
+              event.stopPropagation();
+              submitEntryActionAsync(scriptingForm, submitter);
+              return;
+            }
+            updatePendingScrollIntent(submitter);
+          });
+          scriptingForm.setAttribute('data-scroll-intent-bound', 'true');
+        }
+
+        if (sessionSidebar && sessionToggleButton) {
+          applySessionSidebarCollapsed(sessionSidebar, sessionToggleButton, readSessionSidebarCollapsed());
+          if (sessionToggleButton.getAttribute('data-sidebar-bound') !== 'true') {
+            sessionToggleButton.addEventListener('click', function () {
+              var collapsed = !sessionSidebar.classList.contains('is-collapsed');
+              applySessionSidebarCollapsed(sessionSidebar, sessionToggleButton, collapsed);
+              storeSessionSidebarCollapsed(collapsed);
+            });
+            sessionToggleButton.setAttribute('data-sidebar-bound', 'true');
+          }
+        }
+
+        syncViewportBoundedLayout();
+        if (!skipScrollRestore) {
+          restoreChatHistoryScroll();
+        }
+
+        if (promptInput && generateAndPreviewSubmitButton && scriptingForm) {
+          autoResizePromptInput(promptInput);
+          keepPromptCaretVisible(promptInput);
+          updatePromptSubmitState(scriptingForm, promptInput, promptSubmitButton);
+          syncViewportBoundedLayout();
+          promptInput.addEventListener('input', function () {
+            autoResizePromptInput(promptInput);
+            keepPromptCaretVisible(promptInput);
+            updatePromptSubmitState(scriptingForm, promptInput, promptSubmitButton);
+            syncViewportBoundedLayout();
+          });
+          if (promptSubmitButton) {
+            promptSubmitButton.addEventListener('click', function () {
+              if (promptSubmitButton.disabled) {
+                return;
+              }
+              submitPromptAsync(scriptingForm, generateAndPreviewSubmitButton, promptInput);
+            });
+          }
+          promptExampleButtons.forEach(function (exampleButton) {
+            exampleButton.addEventListener('click', function () {
+              var exampleText = exampleButton.getAttribute('data-prompt-example') || '';
+              promptInput.value = exampleText;
+              promptInput.focus();
+              promptInput.selectionStart = exampleText.length;
+              promptInput.selectionEnd = exampleText.length;
+              promptInput.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+          });
+          promptInput.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') {
+              return;
+            }
+            if (event.altKey) {
+              event.preventDefault();
+              var selectionStart = promptInput.selectionStart;
+              var selectionEnd = promptInput.selectionEnd;
+              var currentValue = promptInput.value || '';
+              promptInput.value = currentValue.slice(0, selectionStart) + '\n' + currentValue.slice(selectionEnd);
+              promptInput.selectionStart = selectionStart + 1;
+              promptInput.selectionEnd = selectionStart + 1;
+              promptInput.dispatchEvent(new Event('input', { bubbles: true }));
+              keepPromptCaretVisible(promptInput);
+              return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            submitPromptAsync(scriptingForm, generateAndPreviewSubmitButton, promptInput);
+          });
+          promptInput.focus();
+        }
+        schedulePendingGenerationRefresh();
+      }
+
+      initializeScriptingForm();
+    })();
+  </script>
+
+</body>
+
+</html>

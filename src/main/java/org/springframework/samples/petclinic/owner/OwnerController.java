@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.springframework.samples.petclinic.script.SavedOwnerQueryScript;
+import org.springframework.samples.petclinic.script.SavedOwnerQueryScriptService;
+import org.springframework.samples.petclinic.script.ScriptResultFormatter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -52,8 +55,11 @@ class OwnerController {
 
 	private final OwnerRepository owners;
 
-	public OwnerController(OwnerRepository owners) {
+	private final SavedOwnerQueryScriptService savedOwnerQueries;
+
+	public OwnerController(OwnerRepository owners, SavedOwnerQueryScriptService savedOwnerQueries) {
 		this.owners = owners;
+		this.savedOwnerQueries = savedOwnerQueries;
 	}
 
 	@InitBinder
@@ -67,6 +73,11 @@ class OwnerController {
 				: this.owners.findById(ownerId)
 					.orElseThrow(() -> new IllegalArgumentException("Owner not found with id: " + ownerId
 							+ ". Please ensure the ID is correct " + "and the owner exists in the database."));
+	}
+
+	@ModelAttribute("savedOwnerQueries")
+	public List<SavedOwnerQueryScript> savedOwnerQueries() {
+		return this.savedOwnerQueries.findAll();
 	}
 
 	@GetMapping("/owners/new")
@@ -95,16 +106,11 @@ class OwnerController {
 	public String processFindForm(@RequestParam(defaultValue = "1") int page, Owner owner, BindingResult result,
 			Model model) {
 		// allow parameterless GET request for /owners to return all records
-		String lastName = owner.getLastName();
-		if (lastName == null) {
-			lastName = ""; // empty string signifies broadest possible search
-		}
-		else {
-			lastName = lastName.strip();
-		}
+		String lastName = normalizeSearchValue(owner.getLastName());
+		String firstName = normalizeSearchValue(owner.getFirstName());
 
-		// find owners by last name
-		Page<Owner> ownersResults = findPaginatedForOwnersLastName(page, lastName);
+		// find owners by last and first name
+		Page<Owner> ownersResults = findPaginatedForOwnersName(page, lastName, firstName);
 		if (ownersResults.isEmpty()) {
 			// no owners found
 			result.rejectValue("lastName", "notFound", "not found");
@@ -121,6 +127,38 @@ class OwnerController {
 		return addPaginationModel(page, model, ownersResults);
 	}
 
+	@GetMapping("/owners/saved-queries/{savedQueryId}")
+	public String runSavedOwnerQuery(@PathVariable("savedQueryId") int savedQueryId, Model model,
+			RedirectAttributes redirectAttributes) {
+		try {
+			SavedOwnerQueryScriptService.SavedOwnerQueryExecution execution = this.savedOwnerQueries
+				.execute(savedQueryId);
+			model.addAttribute("savedOwnerQueryResultName", execution.savedQuery().getName());
+			model.addAttribute("savedOwnerQueryResultHtml",
+					ScriptResultFormatter.formatHtml(execution.scriptResultValue()));
+			model.addAttribute("savedOwnerQueryResultJson",
+					ScriptResultFormatter.writePrettyJson(execution.scriptResultValue()));
+			return "owners/findOwners";
+		}
+		catch (IllegalArgumentException ex) {
+			redirectAttributes.addFlashAttribute("error", ex.getMessage());
+			return "redirect:/owners/find";
+		}
+	}
+
+	@PostMapping("/owners/saved-queries/{savedQueryId}/delete")
+	public String deleteSavedOwnerQuery(@PathVariable("savedQueryId") int savedQueryId,
+			RedirectAttributes redirectAttributes) {
+		try {
+			this.savedOwnerQueries.delete(savedQueryId);
+			redirectAttributes.addFlashAttribute("message", "Saved owner query deleted.");
+		}
+		catch (IllegalArgumentException ex) {
+			redirectAttributes.addFlashAttribute("error", ex.getMessage());
+		}
+		return "redirect:/owners/find";
+	}
+
 	private String addPaginationModel(int page, Model model, Page<Owner> paginated) {
 		List<Owner> listOwners = paginated.getContent();
 		model.addAttribute("currentPage", page);
@@ -130,10 +168,14 @@ class OwnerController {
 		return "owners/ownersList";
 	}
 
-	private Page<Owner> findPaginatedForOwnersLastName(int page, String lastname) {
+	private Page<Owner> findPaginatedForOwnersName(int page, String lastName, String firstName) {
 		int pageSize = 5;
 		Pageable pageable = PageRequest.of(page - 1, pageSize);
-		return owners.findByLastNameStartingWith(lastname, pageable);
+		return owners.findByLastNameStartingWithAndFirstNameStartingWith(lastName, firstName, pageable);
+	}
+
+	private String normalizeSearchValue(String value) {
+		return value == null ? "" : value.strip();
 	}
 
 	@GetMapping("/owners/{ownerId}/edit")

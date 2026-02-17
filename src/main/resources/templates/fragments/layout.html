@@ -17,7 +17,8 @@
 
 <body>
 
-  <nav class="navbar navbar-expand-lg navbar-dark" role="navigation">
+  <nav class="navbar navbar-expand-lg navbar-dark" th:classappend="${menu == 'scripting'} ? ' navbar-scripting-sticky'"
+    role="navigation">
     <div class="container-fluid">
       <a class="navbar-brand" th:href="@{/}"><span></span></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-navbar">
@@ -48,6 +49,11 @@
             <span th:text="#{findOwners}">Find owners</span>
           </li>
 
+	      <li th:replace="~{::menuItem ('/scripting','scripting','script agent','pencil-square-o',#{scriptingAgent})}">
+	        <span class="fa fa-pencil-square-o" aria-hidden="true"></span>
+	        <span th:text="#{scriptingAgent}">Script Agent</span>
+	      </li>
+
           <li th:replace="~{::menuItem ('/vets.html','vets','veterinarians','th-list',#{vets})}">
             <span class="fa fa-th-list" aria-hidden="true"></span>
             <span th:text="#{vets}">Veterinarians</span>
@@ -63,21 +69,23 @@
       </div>
     </div>
   </nav>
-  <div class="container-fluid">
-    <div class="container xd-container">
+  <div class="container-fluid" th:classappend="${menu == 'scripting'} ? ' layout-shell-scripting'">
+    <div class="container xd-container" th:classappend="${menu == 'scripting'} ? ' xd-container-scripting'">
 
       <th:block th:insert="${template}" />
 
-      <br />
-      <br />
-      <div class="container">
-        <div class="row">
-          <div class="col-12 text-center">
-            <img src="../static/images/spring-logo.svg" th:src="@{/resources/images/spring-logo.svg}"
-              alt="VMware Tanzu Logo" class="logo">
+      <th:block th:unless="${menu == 'scripting'}">
+        <br />
+        <br />
+        <div class="container">
+          <div class="row">
+            <div class="col-12 text-center">
+              <img src="../static/images/spring-logo.svg" th:src="@{/resources/images/spring-logo.svg}"
+                alt="VMware Tanzu Logo" class="logo">
+            </div>
           </div>
         </div>
-      </div>
+      </th:block>
     </div>
   </div>
 

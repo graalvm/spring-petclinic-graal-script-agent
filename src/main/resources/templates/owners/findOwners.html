@@ -4,9 +4,71 @@
 
 <body>
 
+  <style>
+    .saved-owner-query-result-card {
+      margin-top: 24px;
+      border: 1px solid #d9e2ec;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      background: #fff;
+    }
+
+    .saved-owner-query-result-card .panel-heading {
+      background: #f8fbff;
+      border-bottom: 1px solid #d9e2ec;
+      padding: 18px 22px;
+    }
+
+    .saved-owner-query-result-meta {
+      margin-top: 4px;
+      color: #52606d;
+      font-size: 13px;
+    }
+
+    .saved-owner-query-result-section {
+      padding: 18px 22px 22px;
+    }
+
+    .saved-owner-query-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .saved-owner-query-result-title {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #486581;
+    }
+
+    .saved-owner-query-result-panel {
+      margin-bottom: 0;
+      border-radius: 14px;
+      border-color: #d9e2ec;
+      overflow: hidden;
+    }
+  </style>
+
   <h2 th:text="#{findOwners}">Find Owners</h2>
 
+  <div class="alert alert-success" th:if="${message}" th:text="${message}">Saved owner query deleted.</div>
+  <div class="alert alert-danger" th:if="${error}" th:text="${error}">Saved owner query returned no owners.</div>
+
   <form th:object="${owner}" th:action="@{/owners}" method="get" class="form-horizontal" id="search-owner-form">
+    <div class="form-group">
+      <div class="control-group" id="firstNameGroup">
+        <label class="col-sm-2 control-label" th:text="#{firstName}">First name </label>
+        <div class="col-sm-10">
+          <input class="form-control" th:field="*{firstName}" size="30" maxlength="80" />
+        </div>
+      </div>
+    </div>
     <div class="form-group">
       <div class="control-group" id="lastNameGroup">
         <label class="col-sm-2 control-label" th:text="#{lastName}">Last name </label>
@@ -29,6 +91,61 @@
     <a class="btn btn-primary" th:href="@{/owners/new}" th:text="#{addOwner}">Add Owner</a>
 
   </form>
+
+  <div class="panel panel-default" th:if="${!#lists.isEmpty(savedOwnerQueries)}" style="margin-top: 24px;">
+    <div class="panel-heading">
+      <strong th:text="#{savedOwnerQueries}">Saved Owner Queries</strong>
+    </div>
+    <div class="list-group">
+      <div class="list-group-item" th:each="savedQuery : ${savedOwnerQueries}"
+        style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <a th:href="@{/owners/saved-queries/__${savedQuery.id}__}" th:text="${savedQuery.name}">Madison Owners</a>
+        <form method="post" th:action="@{/owners/saved-queries/__${savedQuery.id}__/delete}" style="margin: 0;">
+          <button type="submit" class="btn btn-default btn-xs" th:text="#{deleteSavedOwnerQuery}">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel panel-default saved-owner-query-result-card" th:if="${savedOwnerQueryResultHtml}">
+    <div class="panel-heading">
+      <strong th:text="${savedOwnerQueryResultName}">Saved Owner Query</strong>
+      <div class="saved-owner-query-result-meta" th:text="#{savedOwnerQueryResult}">Saved query result</div>
+    </div>
+    <div class="saved-owner-query-result-section">
+      <div class="saved-owner-query-result-header">
+        <span class="saved-owner-query-result-title" th:text="#{scriptResult}">Script Result</span>
+        <button type="button" class="btn btn-default btn-xs" th:if="${savedOwnerQueryResultJson}"
+          data-json-target="saved-owner-query-result-json" th:data-download-name="${savedOwnerQueryResultName}"
+          th:text="#{saveJson}" onclick="saveScriptResultJsonFromButton(this);">Save JSON</button>
+      </div>
+      <div class="panel panel-default saved-owner-query-result-panel">
+        <div class="panel-body" th:utext="${savedOwnerQueryResultHtml}"></div>
+      </div>
+      <textarea hidden th:if="${savedOwnerQueryResultJson}" id="saved-owner-query-result-json"
+        th:text="${savedOwnerQueryResultJson}"></textarea>
+    </div>
+  </div>
+
+  <script>
+    function saveScriptResultJsonFromButton(button) {
+      var targetId = button.getAttribute('data-json-target');
+      var jsonElement = targetId ? document.getElementById(targetId) : null;
+      if (!jsonElement) {
+        return;
+      }
+      var baseName = button.getAttribute('data-download-name') || 'script-result';
+      baseName = baseName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      var blob = new Blob([jsonElement.value], { type: 'application/json' });
+      var downloadLink = document.createElement('a');
+      downloadLink.href = window.URL.createObjectURL(blob);
+      downloadLink.download = (baseName || 'script-result') + '-result.json';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      window.URL.revokeObjectURL(downloadLink.href);
+    }
+  </script>
 
 </body>
 

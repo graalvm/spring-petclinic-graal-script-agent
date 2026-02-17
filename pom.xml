@@ -8,9 +8,9 @@
     <version>4.1.0</version>
   </parent>
 
-  <groupId>org.springframework.samples</groupId>
-  <artifactId>spring-petclinic</artifactId>
-  <version>4.0.0-SNAPSHOT</version>
+  <groupId>org.graalvm.samples</groupId>
+  <artifactId>graal-script-agent-spring-petclinic</artifactId>
+  <version>0.1-SNAPSHOT</version>
 
   <name>petclinic</name>
 
@@ -21,6 +21,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <!-- Important for reproducible builds. Update using e.g. ./mvnw versions:set -DnewVersion=... -->
     <project.build.outputTimestamp>2024-11-28T14:37:52Z</project.build.outputTimestamp>
+    <maven.compiler.parameters>true</maven.compiler.parameters>
 
     <!-- Web dependencies -->
     <webjars-locator.version>1.1.3</webjars-locator.version>
@@ -35,6 +36,7 @@
     <maven-checkstyle.version>3.6.0</maven-checkstyle.version>
     <nohttp-checkstyle.version>0.0.11</nohttp-checkstyle.version>
     <spring-format.version>0.0.47</spring-format.version>
+    <spring-boot.run.jvmArguments>--enable-native-access=ALL-UNNAMED</spring-boot.run.jvmArguments>
   </properties>
 
   <dependencies>
@@ -106,7 +108,62 @@
       <version>${webjars-font-awesome.version}</version>
       <scope>runtime</scope>
     </dependency>
-
+    <dependency>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>polyglot</artifactId>
+      <version>25.0.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>js</artifactId>
+      <version>25.0.3</version>
+      <type>pom</type>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>js-isolate</artifactId>
+      <version>25.0.3</version>
+      <type>pom</type>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.truffle</groupId>
+      <artifactId>truffle-enterprise</artifactId>
+      <version>25.0.3</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j</artifactId>
+      <version>1.13.0</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-open-ai</artifactId>
+      <version>1.13.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm</groupId>
+      <artifactId>script-agent</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/script-agent-0.1-SNAPSHOT.jar</systemPath>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-devtools</artifactId>
@@ -310,6 +367,15 @@
   </licenses>
 
   <profiles>
+    <profile>
+      <id>jdk-24-plus</id>
+      <activation>
+        <jdk>[24,)</jdk>
+      </activation>
+      <properties>
+        <spring-boot.run.jvmArguments>--enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow</spring-boot.run.jvmArguments>
+      </properties>
+    </profile>
     <profile>
       <id>css</id>
       <build>

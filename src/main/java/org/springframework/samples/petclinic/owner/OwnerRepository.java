@@ -15,11 +15,15 @@
  */
 package org.springframework.samples.petclinic.owner;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Repository class for <code>Owner</code> domain objects. All method names are compliant
@@ -43,6 +47,77 @@ public interface OwnerRepository extends JpaRepository<Owner, Integer> {
 	 * found)
 	 */
 	Page<Owner> findByLastNameStartingWith(String lastName, Pageable pageable);
+
+	/**
+	 * Retrieve {@link Owner}s from the data store by first and last name, returning all
+	 * owners whose first and last names <i>start</i> with the given values.
+	 * @param lastName Value to search for in the last name
+	 * @param firstName Value to search for in the first name
+	 * @return a Collection of matching {@link Owner}s (or an empty Collection if none
+	 * found)
+	 */
+	Page<Owner> findByLastNameStartingWithAndFirstNameStartingWith(String lastName, String firstName,
+			Pageable pageable);
+
+	/**
+	 * Retrieve owners by a last-name prefix (case-insensitive).
+	 * @param lastNamePrefix value to search for in the last name
+	 * @return matching owners
+	 */
+	List<Owner> findByLastNameStartingWithIgnoreCase(String lastNamePrefix);
+
+	/**
+	 * Retrieve owners by first and last-name prefixes (case-insensitive).
+	 * @param firstNamePrefix value to search for in the first name
+	 * @param lastNamePrefix value to search for in the last name
+	 * @return matching owners
+	 */
+	List<Owner> findByFirstNameStartingWithIgnoreCaseAndLastNameStartingWithIgnoreCase(String firstNamePrefix,
+			String lastNamePrefix);
+
+	/**
+	 * Retrieve owners by city prefix (case-insensitive).
+	 * @param cityPrefix value to search for in city
+	 * @return matching owners
+	 */
+	List<Owner> findByCityStartingWithIgnoreCase(String cityPrefix);
+
+	/**
+	 * Retrieve owners with pets whose type has the specified name (case-insensitive).
+	 * @param petTypeName pet type name to match
+	 * @return matching owners
+	 */
+	@Query("select distinct o from Owner o join o.pets p join p.type t where lower(t.name) = lower(:petTypeName)")
+	List<Owner> findOwnersByPetTypeName(@Param("petTypeName") String petTypeName);
+
+	/**
+	 * Retrieve owners with pets whose name starts with the provided prefix
+	 * (case-insensitive).
+	 * @param petNamePrefix pet-name prefix to match
+	 * @return matching owners
+	 */
+	@Query("select distinct o from Owner o join o.pets p where lower(p.name) like lower(concat(:petNamePrefix, '%'))")
+	List<Owner> findOwnersByPetNameStartingWith(@Param("petNamePrefix") String petNamePrefix);
+
+	/**
+	 * Retrieve owners with visits whose description contains the provided fragment
+	 * (case-insensitive).
+	 * @param descriptionFragment visit description fragment to match
+	 * @return matching owners
+	 */
+	@Query("select distinct o from Owner o join o.pets p join p.visits v "
+			+ "where lower(v.description) like lower(concat('%', :descriptionFragment, '%'))")
+	List<Owner> findOwnersByVisitDescriptionContaining(@Param("descriptionFragment") String descriptionFragment);
+
+	/**
+	 * Retrieve owners that have at least one visit date in the provided inclusive range.
+	 * @param startDate start date (inclusive)
+	 * @param endDate end date (inclusive)
+	 * @return matching owners
+	 */
+	@Query("select distinct o from Owner o join o.pets p join p.visits v where v.date between :startDate and :endDate")
+	List<Owner> findOwnersByVisitDateBetween(@Param("startDate") LocalDate startDate,
+			@Param("endDate") LocalDate endDate);
 
 	/**
 	 * Retrieve an {@link Owner} from the data store by id.

@@ -5,6 +5,7 @@
 <body>
 
   <h2 th:text="#{owners}">Owners</h2>
+  <div th:if="${savedOwnerQueryName}" class="alert alert-info" th:text="${savedOwnerQueryName}">Saved Owner Query</div>
 
   <table id="owners" class="table table-striped">
     <thead>

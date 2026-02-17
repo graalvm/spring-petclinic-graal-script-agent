@@ -1,168 +1,94 @@
-# Spring PetClinic Sample Application [![Build Status](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml)[![Build Status](https://github.com/spring-projects/spring-petclinic/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/spring-projects/spring-petclinic/actions/workflows/gradle-build.yml)
+# Spring PetClinic Demo Enhanced with Graal Script Agent
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/spring-projects/spring-petclinic) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=7517918)
+This project extends the Spring PetClinic sample application with an interactive Script Agent for working with PetClinic owner data. The extension is built on the Graal Script Agent library.
 
-## Understanding the Spring Petclinic application with a few diagrams
+The original Spring PetClinic application is still present: you can browse owners, pets, vets, and visits through the normal UI. This demo adds a **Script Agent** tab where users can describe data tasks in a chat-like interface and have the application generate scripts for them.
 
-See the presentation here:  
-[Spring Petclinic Sample Application (legacy slides)](https://speakerdeck.com/michaelisvy/spring-petclinic-sample-application?slide=20)
+## Run
 
-> **Note:** These slides refer to a legacy, pre–Spring Boot version of Petclinic and may not reflect the current Spring Boot–based implementation.  
-> For up-to-date information, please refer to this repository and its documentation.
+### JVM
 
+Use GraalVM 25.0.3 to run the application. Set `JAVA_HOME` to the GraalVM 25.0.3 installation directory before running Maven commands.
 
-## Run Petclinic locally
+### In-Memory Storage
 
-Spring Petclinic is a [Spring Boot](https://spring.io/guides/gs/spring-boot) application built using [Maven](https://spring.io/guides/gs/maven/) or [Gradle](https://spring.io/guides/gs/gradle/).
-Java 17 or later is required for the build, and the application can run with Java 17 or newer.
-
-You first need to clone the project locally:
-
-```bash
-git clone https://github.com/spring-projects/spring-petclinic.git
-cd spring-petclinic
-```
-If you are using Maven, you can start the application on the command-line as follows:
+The default configuration uses an in-memory H2 database. It is populated at startup and does not require Docker or an external database.
 
 ```bash
 ./mvnw spring-boot:run
 ```
-With Gradle, the command is as follows:
+
+Then open <http://localhost:8080>.
+
+Because the database is in memory, changes made through the normal UI or through Script Agent scripts are lost when the application stops.
+
+### Persistent Oracle Storage
+
+Use the `oracle` Spring profile when you want owner data and saved query scripts to survive application restarts.
+
+Start Oracle Database Free with Docker Compose:
 
 ```bash
-./gradlew bootRun
+sudo docker compose up oracle
 ```
 
-You can then access the Petclinic at <http://localhost:8080/>.
-
-<img width="1042" alt="petclinic-screenshot" src="https://cloud.githubusercontent.com/assets/838318/19727082/2aee6d6c-9b8e-11e6-81fe-e889a5ddfded.png">
-
-You can, of course, run Petclinic in your favorite IDE.
-See below for more details.
-
-## Building a Container
-
-There is no `Dockerfile` in this project. You can build a container image (if you have a docker daemon) using the Spring Boot build plugin:
+Wait until the database is ready, then start the application with the Oracle profile:
 
 ```bash
-./mvnw spring-boot:build-image
+./mvnw spring-boot:run -Dspring-boot.run.profiles=oracle
 ```
 
-## Running the Container Image
+The default Oracle connection settings are:
 
-```bash
-docker images | grep petclinic
-docker run -p 8080:8080 docker.io/library/spring-petclinic:latest
+```text
+URL:      jdbc:oracle:thin:@localhost:1521/FREEPDB1
+User:     petclinic
+Password: petclinic
 ```
 
-## In case you find a bug/suggested improvement for Spring Petclinic
+You can override them with `ORACLE_URL`, `ORACLE_USER`, and `ORACLE_PASS`.
 
-Our issue tracker is available [here](https://github.com/spring-projects/spring-petclinic/issues).
+The Oracle profile initializes the schema and default PetClinic data on startup. The seed data is written to avoid recreating default rows after those rows have been edited.
 
-## Database configuration
+Additional Oracle setup notes are available in [src/main/resources/db/oracle/petclinic_db_setup_oracle.txt](src/main/resources/db/oracle/petclinic_db_setup_oracle.txt).
 
-In its default configuration, Petclinic uses an in-memory database (H2) which
-gets populated at startup with data. The h2 console is exposed at `http://localhost:8080/h2-console`,
-and it is possible to inspect the content of the database using the `jdbc:h2:mem:<uuid>` URL. The UUID is printed at startup to the console.
+### LLM Configuration
 
-A similar setup is provided for Oracle Database if a persistent database configuration is needed. Note that whenever the database type changes, the app needs to run with a different profile: `spring.profiles.active=oracle` for Oracle Database. See the [Spring Boot documentation](https://docs.spring.io/spring-boot/how-to/properties-and-configuration.html#howto.properties-and-configuration.set-active-spring-profiles) for more detail on how to set the active profile.
+For now, the demo supports only OpenAI-compatible models. Script generation is enabled when `MODEL_API_KEY` is set. Without it, the application can still start, but the Script Agent cannot generate scripts.
 
-You can start Oracle Database locally with whatever installer works for your OS or use docker:
+The Script Agent uses these environment variables:
 
-```bash
-docker run --name petclinic-oracle -p 1521:1521 -e ORACLE_PASSWORD=petclinic -e APP_USER=petclinic -e APP_USER_PASSWORD=petclinic gvenzl/oracle-free:23.4-slim-faststart
-```
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `MODEL_API_KEY` | Yes | None | API key passed to the LangChain4j OpenAI-compatible responses model. |
+| `MODEL_NAME` | No | `gpt-5.5` | Model name passed to the LLM provider. |
+| `MODEL_REASONING_EFFORT` | No | `low` | Reasoning effort value passed to the responses model. |
+| `MODEL_BASE_URL` | No | Provider default | Optional base URL for an OpenAI-compatible endpoint. |
 
-Further documentation is provided for [Oracle Database](src/main/resources/db/oracle/petclinic_db_setup_oracle.txt).
+## Script Agent
 
-Instead of vanilla `docker` you can also use the provided `docker-compose.yml` file to start the database container. The service is named after the Spring profile:
+The Script Agent page accepts natural-language prompts and responds with generated scripts plus a preview of what those scripts would do.
 
-```bash
-docker compose up oracle
-```
+Generated scripts can query owner data or modify it. Scripts that modify data first show a preview of the planned changes. The user can inspect that preview and then choose whether to execute the script for real.
 
-## Test Applications
+Query scripts that return owner lists can be saved and added to the **Find Owners** page. Once saved, those scripts become reusable owner searches that can be executed directly from the normal owner search workflow.
 
-At development time we recommend you use the test applications set up as `main()` methods in `PetClinicIntegrationTests` (using the default H2 database and also adding Spring Boot Devtools) and `OracleTestApplication`. These are set up so that you can run the apps in your IDE to get fast feedback and also run the same classes as integration tests against the respective database. The Oracle integration tests use Testcontainers to start the database in a Docker container.
+The Script Agent supports sessions, so a user can continue a conversation while refining prompts and generated scripts.
 
-## Compiling the CSS
+### Implementation Notes
 
-There is a `petclinic.css` in `src/main/resources/static/resources/css`. It was generated from the `petclinic.scss` source, combined with the [Bootstrap](https://getbootstrap.com/) library. If you make changes to the `scss`, or upgrade Bootstrap, you will need to re-compile the CSS resources using the Maven profile "css", i.e. `./mvnw package -P css`. There is no build profile for Gradle to compile the CSS.
+The Script Agent page uses the `script-agent` library to generate scripts with an LLM. To use `ScriptAgent`, the application must define a schema for generated scripts. This schema is defined in `PetClinicScriptExtensions`.
 
-## Working with Petclinic in your IDE
+The schema lets generated scripts choose one extension type through `ExtensionSelector`: `OwnerQueryHierarchyResultExtension` for owner hierarchy query results, `OwnerQueryJsonResultExtension` for JSON query results, or `ModificationExtension` for scripts that modify owners, pets, or visits. Query extensions receive only `OwnersApi`; modification scripts receive `OwnersApi` and `ModificationApi` and do not return a result.
 
-### Prerequisites
+`ScriptGenerationService` uses LangChain4j to connect to the LLM model configured through the `MODEL_*` environment variables described below. The configured model is passed to the `ScriptAgent` builder.
 
-The following items should be installed in your system:
+For each chat, `ScriptGenerationService` creates or reuses a `ScriptAgent` session in `getOrCreateSession`. The session is created with the PetClinic script schema, and `generateScript` calls `generate` on that session to obtain the generated script.
 
-- Java 17 or newer (full JDK, not a JRE)
-- [Git command line tool](https://help.github.com/articles/set-up-git)
-- Your preferred IDE
-  - Eclipse with the m2e plugin. Note: when m2e is available, there is a m2 icon in `Help -> About` dialog. If m2e is
-  not there, follow the installation process [here](https://www.eclipse.org/m2e/)
-  - [Spring Tools Suite](https://spring.io/tools) (STS)
-  - [IntelliJ IDEA](https://www.jetbrains.com/idea/)
-  - [VS Code](https://code.visualstudio.com)
+Generated scripts are executed by `ScriptService` in a GraalVM polyglot `Context`. The context is created from a `Sandbox` configured with the sandbox options used by this demo before the script is evaluated.
 
-### Steps
+## Original Spring PetClinic README
 
-1. On the command line run:
+The original upstream Spring PetClinic README is preserved in [README_ORIG.md](README_ORIG.md).
 
-    ```bash
-    git clone https://github.com/spring-projects/spring-petclinic.git
-    ```
-
-1. Inside Eclipse or STS:
-
-    Open the project via `File -> Import -> Maven -> Existing Maven project`, then select the root directory of the cloned repo.
-
-    Then either build on the command line `./mvnw generate-resources` or use the Eclipse launcher (right-click on project and `Run As -> Maven install`) to generate the CSS. Run the application's main method by right-clicking on it and choosing `Run As -> Java Application`.
-
-1. Inside IntelliJ IDEA:
-
-    In the main menu, choose `File -> Open` and select the Petclinic [pom.xml](pom.xml). Click on the `Open` button.
-
-    - CSS files are generated from the Maven build. You can build them on the command line `./mvnw generate-resources` or right-click on the `spring-petclinic` project then `Maven -> Generates sources and Update Folders`.
-
-    - A run configuration named `PetClinicApplication` should have been created for you if you're using a recent Ultimate version. Otherwise, run the application by right-clicking on the `PetClinicApplication` main class and choosing `Run 'PetClinicApplication'`.
-
-1. Navigate to the Petclinic
-
-    Visit [http://localhost:8080](http://localhost:8080) in your browser.
-
-## Looking for something in particular?
-
-|Spring Boot Configuration | Class or Java property files  |
-|--------------------------|---|
-|The Main Class | [PetClinicApplication](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java) |
-|Properties Files | [application.properties](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources) |
-|Caching | [CacheConfiguration](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java) |
-
-## Interesting Spring Petclinic branches and forks
-
-The Spring Petclinic "main" branch in the [spring-projects](https://github.com/spring-projects/spring-petclinic)
-GitHub org is the "canonical" implementation based on Spring Boot and Thymeleaf. There are
-[quite a few forks](https://spring-petclinic.github.io/docs/forks.html) in the GitHub org
-[spring-petclinic](https://github.com/spring-petclinic). If you are interested in using a different technology stack to implement the Pet Clinic, please join the community there.
-
-## Interaction with other open-source projects
-
-One of the best parts about working on the Spring Petclinic application is that we have the opportunity to work in direct contact with many Open Source projects. We found bugs/suggested improvements on various topics such as Spring, Spring Data, Bean Validation and even Eclipse! In many cases, they've been fixed/implemented in just a few days.
-Here is a list of them:
-
-| Name | Issue |
-|------|-------|
-| Spring JDBC: simplify usage of NamedParameterJdbcTemplate | [SPR-10256](https://github.com/spring-projects/spring-framework/issues/14889) and [SPR-10257](https://github.com/spring-projects/spring-framework/issues/14890) |
-| Bean Validation / Hibernate Validator: simplify Maven dependencies and backward compatibility |[HV-790](https://hibernate.atlassian.net/browse/HV-790) and [HV-792](https://hibernate.atlassian.net/browse/HV-792) |
-| Spring Data: provide more flexibility when working with JPQL queries | [DATAJPA-292](https://github.com/spring-projects/spring-data-jpa/issues/704) |
-
-## Contributing
-
-The [issue tracker](https://github.com/spring-projects/spring-petclinic/issues) is the preferred channel for bug reports, feature requests and submitting pull requests.
-
-For pull requests, editor preferences are available in the [editor config](.editorconfig) for easy use in common text editors. Read more and download plugins at <https://editorconfig.org>. All commits must include a __Signed-off-by__ trailer at the end of each commit message to indicate that the contributor agrees to the Developer Certificate of Origin.
-For additional details, please refer to the blog post [Hello DCO, Goodbye CLA: Simplifying Contributions to Spring](https://spring.io/blog/2025/01/06/hello-dco-goodbye-cla-simplifying-contributions-to-spring).
-
-## License
-
-The Spring PetClinic sample application is released under version 2.0 of the [Apache License](https://www.apache.org/licenses/LICENSE-2.0).
+Some information in that file may not apply to this demo. In particular, use this README for the persistent database setup because this project uses the Oracle profile and Docker Compose configuration from this repository.
