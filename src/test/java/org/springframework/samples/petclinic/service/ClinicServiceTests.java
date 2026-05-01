@@ -70,9 +70,9 @@ import org.springframework.transaction.annotation.Transactional;
  * @author Dave Syer
  */
 @DataJpaTest
-// Ensure that if the mysql profile is active we connect to the real database:
+// Ensure that if the oracle profile is active we connect to the real database:
 @AutoConfigureTestDatabase(replace = Replace.NONE)
-// @TestPropertySource("/application-postgres.properties")
+// @TestPropertySource("/application-oracle.properties")
 class ClinicServiceTests {
 
 	@Autowired

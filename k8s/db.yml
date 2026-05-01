@@ -3,15 +3,15 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: demo-db
-type: servicebinding.io/postgresql
+type: servicebinding.io/oracle
 stringData:
-  type: "postgresql"
-  provider: "postgresql"
+  type: "oracle"
+  provider: "oracle"
   host: "demo-db"
-  port: "5432"
-  database: "petclinic"
-  username: "user"
-  password: "pass"
+  port: "1521"
+  database: "FREEPDB1"
+  username: "petclinic"
+  password: "petclinic"
 
 ---
 apiVersion: v1
@@ -20,7 +20,7 @@ metadata:
   name: demo-db
 spec:
   ports:
-    - port: 5432
+    - port: 1521
   selector:
     app: demo-db
 
@@ -41,33 +41,30 @@ spec:
         app: demo-db
     spec:
       containers:
-        - image: postgres:18.4
-          name: postgresql
+        - image: gvenzl/oracle-free:23.4-slim-faststart
+          name: oracle
           env:
-            - name: POSTGRES_USER
+            - name: ORACLE_PASSWORD
+              value: petclinic
+            - name: APP_USER
               valueFrom:
                 secretKeyRef:
                   name: demo-db
                   key: username
-            - name: POSTGRES_PASSWORD
+            - name: APP_USER_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: demo-db
                   key: password
-            - name: POSTGRES_DB
-              valueFrom:
-                secretKeyRef:
-                  name: demo-db
-                  key: database
           ports:
-            - containerPort: 5432
-              name: postgresql
+            - containerPort: 1521
+              name: oracle
           livenessProbe:
             tcpSocket:
-              port: postgresql
+              port: oracle
           readinessProbe:
             tcpSocket:
-              port: postgresql
+              port: oracle
           startupProbe:
             tcpSocket:
-              port: postgresql
+              port: oracle

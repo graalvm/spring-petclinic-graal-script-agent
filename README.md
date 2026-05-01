@@ -65,38 +65,25 @@ In its default configuration, Petclinic uses an in-memory database (H2) which
 gets populated at startup with data. The h2 console is exposed at `http://localhost:8080/h2-console`,
 and it is possible to inspect the content of the database using the `jdbc:h2:mem:<uuid>` URL. The UUID is printed at startup to the console.
 
-A similar setup is provided for MySQL and PostgreSQL if a persistent database configuration is needed. Note that whenever the database type changes, the app needs to run with a different profile: `spring.profiles.active=mysql` for MySQL or `spring.profiles.active=postgres` for PostgreSQL. See the [Spring Boot documentation](https://docs.spring.io/spring-boot/how-to/properties-and-configuration.html#howto.properties-and-configuration.set-active-spring-profiles) for more detail on how to set the active profile.
+A similar setup is provided for Oracle Database if a persistent database configuration is needed. Note that whenever the database type changes, the app needs to run with a different profile: `spring.profiles.active=oracle` for Oracle Database. See the [Spring Boot documentation](https://docs.spring.io/spring-boot/how-to/properties-and-configuration.html#howto.properties-and-configuration.set-active-spring-profiles) for more detail on how to set the active profile.
 
-You can start MySQL or PostgreSQL locally with whatever installer works for your OS or use docker:
+You can start Oracle Database locally with whatever installer works for your OS or use docker:
 
 ```bash
-docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.7
+docker run --name petclinic-oracle -p 1521:1521 -e ORACLE_PASSWORD=petclinic -e APP_USER=petclinic -e APP_USER_PASSWORD=petclinic gvenzl/oracle-free:23.4-slim-faststart
 ```
 
-or
+Further documentation is provided for [Oracle Database](src/main/resources/db/oracle/petclinic_db_setup_oracle.txt).
+
+Instead of vanilla `docker` you can also use the provided `docker-compose.yml` file to start the database container. The service is named after the Spring profile:
 
 ```bash
-docker run -e POSTGRES_USER=petclinic -e POSTGRES_PASSWORD=petclinic -e POSTGRES_DB=petclinic -p 5432:5432 postgres:18.4
-```
-
-Further documentation is provided for [MySQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/mysql/petclinic_db_setup_mysql.txt)
-and [PostgreSQL](https://github.com/spring-projects/spring-petclinic/blob/main/src/main/resources/db/postgres/petclinic_db_setup_postgres.txt).
-
-Instead of vanilla `docker` you can also use the provided `docker-compose.yml` file to start the database containers. Each one has a service named after the Spring profile:
-
-```bash
-docker compose up mysql
-```
-
-or
-
-```bash
-docker compose up postgres
+docker compose up oracle
 ```
 
 ## Test Applications
 
-At development time we recommend you use the test applications set up as `main()` methods in `PetClinicIntegrationTests` (using the default H2 database and also adding Spring Boot Devtools), `MySqlTestApplication` and `PostgresIntegrationTests`. These are set up so that you can run the apps in your IDE to get fast feedback and also run the same classes as integration tests against the respective database. The MySql integration tests use Testcontainers to start the database in a Docker container, and the Postgres tests use Docker Compose to do the same thing.
+At development time we recommend you use the test applications set up as `main()` methods in `PetClinicIntegrationTests` (using the default H2 database and also adding Spring Boot Devtools) and `OracleTestApplication`. These are set up so that you can run the apps in your IDE to get fast feedback and also run the same classes as integration tests against the respective database. The Oracle integration tests use Testcontainers to start the database in a Docker container.
 
 ## Compiling the CSS
 

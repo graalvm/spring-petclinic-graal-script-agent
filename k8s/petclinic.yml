@@ -33,7 +33,19 @@ spec:
           image: dsyer/petclinic
           env:
             - name: SPRING_PROFILES_ACTIVE
-              value: postgres
+              value: oracle
+            - name: ORACLE_URL
+              value: jdbc:oracle:thin:@demo-db:1521/FREEPDB1
+            - name: ORACLE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: demo-db
+                  key: username
+            - name: ORACLE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: demo-db
+                  key: password
             - name: SERVICE_BINDING_ROOT
               value: /bindings
             - name: SPRING_APPLICATION_JSON

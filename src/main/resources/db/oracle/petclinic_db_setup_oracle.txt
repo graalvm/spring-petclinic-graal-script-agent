@@ -1,0 +1,28 @@
+========================================================================
+===      Spring PetClinic sample application - Oracle configuration    ===
+========================================================================
+
+This project includes an Oracle profile for persistent database use.
+
+1) Start Oracle Database Free with Docker:
+
+   docker run --name petclinic-oracle \
+     -p 1521:1521 \
+     -e ORACLE_PASSWORD=petclinic \
+     -e APP_USER=petclinic \
+     -e APP_USER_PASSWORD=petclinic \
+     gvenzl/oracle-free:23.4-slim-faststart
+
+   The same database can be started with Docker Compose:
+
+   docker compose up oracle
+
+2) Run the app with the oracle Spring profile:
+
+   ./mvnw spring-boot:run -Dspring-boot.run.profiles=oracle
+
+   The default JDBC URL is:
+
+   jdbc:oracle:thin:@localhost:1521/FREEPDB1
+
+   Override it with ORACLE_URL, ORACLE_USER, and ORACLE_PASS if needed.

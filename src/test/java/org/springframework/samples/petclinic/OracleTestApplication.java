@@ -21,8 +21,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.testcontainers.mysql.MySQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.oracle.OracleContainer;
 
 /**
  * PetClinic Spring Boot Application.
@@ -30,17 +29,17 @@ import org.testcontainers.utility.DockerImageName;
  * @author Dave Syer
  */
 @Configuration
-public class MysqlTestApplication {
+public class OracleTestApplication {
 
 	@ServiceConnection
-	@Profile("mysql")
+	@Profile("oracle")
 	@Bean
-	static MySQLContainer container() {
-		return new MySQLContainer(DockerImageName.parse("mysql:9.7"));
+	static OracleContainer container() {
+		return new OracleContainer("gvenzl/oracle-free:23.4-slim-faststart");
 	}
 
 	public static void main(String[] args) {
-		SpringApplication.run(PetClinicApplication.class, "--spring.profiles.active=mysql",
+		SpringApplication.run(PetClinicApplication.class, "--spring.profiles.active=oracle",
 				"--spring.docker.compose.enabled=false");
 	}
 
