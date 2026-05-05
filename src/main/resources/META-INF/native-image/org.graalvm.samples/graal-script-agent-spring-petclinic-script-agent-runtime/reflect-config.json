@@ -1,0 +1,42 @@
+[
+  {
+    "name": "org.thymeleaf.expression.Lists",
+    "methods": [
+      {
+        "name": "isEmpty",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "java.util.ArrayList",
+    "methods": [
+      {
+        "name": "isEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "size",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "org.springframework.samples.petclinic.script.ScriptController$ChatSessionState",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "org.springframework.samples.petclinic.script.ScriptController$ChatEntryView",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "org.springframework.samples.petclinic.script.ScriptService$PreviewOperation",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "org.springframework.samples.petclinic.script.ScriptService$PreviewSegment",
+    "allDeclaredMethods": true
+  }
+]

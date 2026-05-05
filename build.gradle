@@ -16,11 +16,18 @@ version = '0.1-SNAPSHOT'
 
 java {
   toolchain {
-    languageVersion = JavaLanguageVersion.of(17)
+    languageVersion = JavaLanguageVersion.of(25)
   }
 }
 
+tasks.withType(JavaCompile).configureEach {
+  options.release = 17
+}
+
 repositories {
+  maven {
+    url = uri('lib/maven-repository')
+  }
   mavenCentral()
 }
 
@@ -46,7 +53,7 @@ dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'org.jspecify:jspecify:1.0.0'
-  implementation files('lib/script-agent-0.1-SNAPSHOT.jar')
+  implementation 'org.graalvm:script-agent:0.1-SNAPSHOT'
   implementation 'javax.cache:cache-api'
   implementation 'jakarta.xml.bind:jakarta.xml.bind-api'
   runtimeOnly 'org.springframework.boot:spring-boot-starter-actuator'
