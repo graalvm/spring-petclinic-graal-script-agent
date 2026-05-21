@@ -28,7 +28,7 @@ import org.springframework.samples.petclinic.owner.Owner;
 import org.springframework.samples.petclinic.owner.OwnerRepository;
 import org.springframework.samples.petclinic.owner.Pet;
 import org.springframework.samples.petclinic.owner.PetTypeRepository;
-import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ExtensionSelector;
+import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ScriptingExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -235,7 +235,7 @@ class ScriptServiceIntegrationTests {
 		ScriptService service = new ScriptService(this.ownerRepository, this.petTypeRepository);
 
 		ScriptService.PreviewResult previewResult = service.preview(script("""
-				() => util.implement(types.OwnerQueryJsonResultExtension, {
+				util.implement(types.OwnerQueryJsonResultExtension, {
 					execute: ownersApi => {
 						const owner = ownersApi.findByFirstAndLastNameStartingWith('George', 'Franklin')[0];
 						return util.implement(types.JsonResult, {
@@ -267,7 +267,7 @@ class ScriptServiceIntegrationTests {
 		ScriptService service = new ScriptService(this.ownerRepository, this.petTypeRepository);
 
 		ScriptService.PreviewResult previewResult = service.preview(script("""
-				() => util.implement(types.OwnerQueryHierarchyResultExtension, {
+				util.implement(types.OwnerQueryHierarchyResultExtension, {
 					execute: ownersApi => util.implement(types.OwnerHierarchyResult, {
 						owners: () => {
 							const result = [];
@@ -297,7 +297,7 @@ class ScriptServiceIntegrationTests {
 		ScriptService service = new ScriptService(this.ownerRepository, this.petTypeRepository);
 
 		ScriptService.PreviewResult previewResult = service.preview(script("""
-				() => util.implement(types.ModificationExtension, {
+				util.implement(types.ModificationExtension, {
 					execute: (ownersApi, modificationApi) => {
 						modificationApi.addOwner('John', 'Doe', '5520 Lacy Road', 'Fitchburg', '6085558763');
 					}
@@ -320,7 +320,7 @@ class ScriptServiceIntegrationTests {
 		ScriptService service = new ScriptService(this.ownerRepository, this.petTypeRepository);
 
 		ScriptService.PreviewResult previewResult = service.preview(script("""
-				() => util.implement(types.ModificationExtension, {
+				util.implement(types.ModificationExtension, {
 					execute: (ownersApi, modificationApi) => {
 					}
 				})
@@ -336,7 +336,7 @@ class ScriptServiceIntegrationTests {
 		ScriptService service = new ScriptService(this.ownerRepository, this.petTypeRepository);
 
 		ScriptService.PreviewResult previewResult = service.preview(script("""
-				() => util.implement(types.OwnerQueryHierarchyResultExtension, {
+				util.implement(types.OwnerQueryHierarchyResultExtension, {
 					execute: ownersApi => util.implement(types.OwnerHierarchyResult, {
 						owners: () => {
 							const owner = ownersApi.findByFirstAndLastNameStartingWith('Jean', 'Coleman')[0];
@@ -387,7 +387,7 @@ class ScriptServiceIntegrationTests {
 		ScriptService service = new ScriptService(this.ownerRepository, this.petTypeRepository);
 
 		ScriptService.PreviewResult previewResult = service.preview(script(
-				"() => util.implement(types.ModificationExtension, { execute: (ownersApi, modificationApi) => { modificationApi.addOwner('Taylor', 'Preview', '1 Preview St.', 'Madison', '6085550000'); } })",
+				"util.implement(types.ModificationExtension, { execute: (ownersApi, modificationApi) => { modificationApi.addOwner('Taylor', 'Preview', '1 Preview St.', 'Madison', '6085550000'); } })",
 				"Mutation Only"));
 
 		assertThat(previewResult.operations()).singleElement()
@@ -416,7 +416,7 @@ class ScriptServiceIntegrationTests {
 		return (Map<String, Object>) value;
 	}
 
-	private org.graalvm.scriptagent.Script<ExtensionSelector> script(String scriptText, String caption) {
+	private org.graalvm.scriptagent.Script<ScriptingExtension> script(String scriptText, String caption) {
 		return PetClinicScriptTestSupport.createScript(scriptText, caption);
 	}
 

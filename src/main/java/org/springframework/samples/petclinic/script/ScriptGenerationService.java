@@ -23,7 +23,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiResponsesStreamingChatModel;
 import org.graalvm.scriptagent.Script;
 import org.graalvm.scriptagent.ScriptAgent;
-import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ExtensionSelector;
+import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ScriptingExtension;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -33,7 +33,7 @@ public class ScriptGenerationService {
 	private static final int MAX_GENERATION_SESSIONS = 128;
 
 	private static final String AGENT_INSTRUCTIONS = """
-			The script source implements ExtensionSelector.choose directly. Write a zero-argument top-level function that returns the selected extension directly. Never return an object containing a choose method.
+			The script source evaluates to one ScriptingExtension implementation directly.
 			Pet and visit data is only reachable from owner query results: first find owners, then call owner.getPets(), then call pet.getVisits(). In OwnerHierarchyResult, return pet entries from OwnerResultEntry.petsToDisplay() and visit entries from PetResultEntry.visitsToDisplay(); those lists, not shouldDisplayField, control whether nested pets and visits are included.
 			When returning owners or owner-related data, preserve each owner's id together with firstName and lastName so the UI can render owner names as clickable links.
 			Important: Try the best to fulfil the user's request even though the prompt may not specify everything precisely or there is no straightforward api to get the requested information/do the requested modifications.
@@ -41,7 +41,7 @@ public class ScriptGenerationService {
 
 	private final ScriptAgent scriptingAgent;
 
-	private final Map<String, ScriptAgent.Session<ExtensionSelector>> generationSessions = new LinkedHashMap<>();
+	private final Map<String, ScriptAgent.Session<ScriptingExtension>> generationSessions = new LinkedHashMap<>();
 
 	private final Map<String, Object> generationSessionLocks = new LinkedHashMap<>();
 
@@ -76,9 +76,9 @@ public class ScriptGenerationService {
 		String resolvedSessionId = StringUtils.hasText(sessionId) ? sessionId : UUID.randomUUID().toString();
 		Object generationSessionLock = getGenerationSessionLock(resolvedSessionId);
 		synchronized (generationSessionLock) {
-			ScriptAgent.Session<ExtensionSelector> generationSession = getOrCreateSession(resolvedSessionId);
+			ScriptAgent.Session<ScriptingExtension> generationSession = getOrCreateSession(resolvedSessionId);
 			try {
-				Script<ExtensionSelector> generatedScript = generationSession.generate(prompt);
+				Script<ScriptingExtension> generatedScript = generationSession.generate(prompt);
 				return new GenerationResult(resolvedSessionId, generatedScript);
 			}
 			catch (RuntimeException ex) {
@@ -92,22 +92,22 @@ public class ScriptGenerationService {
 		if (!StringUtils.hasText(sessionId)) {
 			return;
 		}
-		ScriptAgent.Session<ExtensionSelector> removedSession;
+		ScriptAgent.Session<ScriptingExtension> removedSession;
 		synchronized (this.generationSessions) {
 			removedSession = this.generationSessions.remove(sessionId);
 		}
 		closeSession(removedSession);
 	}
 
-	private ScriptAgent.Session<ExtensionSelector> getOrCreateSession(String sessionId) {
+	private ScriptAgent.Session<ScriptingExtension> getOrCreateSession(String sessionId) {
 		synchronized (this.generationSessions) {
-			ScriptAgent.Session<ExtensionSelector> existingSession = this.generationSessions.get(sessionId);
+			ScriptAgent.Session<ScriptingExtension> existingSession = this.generationSessions.get(sessionId);
 			if (existingSession != null) {
 				return existingSession;
 			}
 			evictOldestSessionIfNeeded();
-			ScriptAgent.Session<ExtensionSelector> newSession = this.scriptingAgent.newSession(ExtensionSelector.class,
-					PetClinicScriptExtensions.scriptSchema());
+			ScriptAgent.Session<ScriptingExtension> newSession = this.scriptingAgent
+				.newSession(ScriptingExtension.class, PetClinicScriptExtensions.scriptSchema());
 			this.generationSessions.put(sessionId, newSession);
 			return newSession;
 		}
@@ -124,11 +124,11 @@ public class ScriptGenerationService {
 			return;
 		}
 		String eldestSessionId = this.generationSessions.keySet().iterator().next();
-		ScriptAgent.Session<ExtensionSelector> removedSession = this.generationSessions.remove(eldestSessionId);
+		ScriptAgent.Session<ScriptingExtension> removedSession = this.generationSessions.remove(eldestSessionId);
 		closeSession(removedSession);
 	}
 
-	private void closeSession(ScriptAgent.Session<ExtensionSelector> session) {
+	private void closeSession(ScriptAgent.Session<ScriptingExtension> session) {
 		if (session == null) {
 			return;
 		}
@@ -141,7 +141,7 @@ public class ScriptGenerationService {
 		}
 	}
 
-	public record GenerationResult(String sessionId, Script<ExtensionSelector> script) {
+	public record GenerationResult(String sessionId, Script<ScriptingExtension> script) {
 
 		public GenerationResult {
 			if (!StringUtils.hasText(sessionId)) {

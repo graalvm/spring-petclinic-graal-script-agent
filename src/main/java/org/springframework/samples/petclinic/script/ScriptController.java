@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpSession;
 import org.graalvm.scriptagent.Script;
-import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ExtensionSelector;
+import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ScriptingExtension;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -179,7 +179,7 @@ class ScriptController {
 			@RequestParam(value = "targetEntryId", required = false) String targetEntryId, Model model,
 			HttpSession httpSession) {
 		ChatState chatState = loadChatState(scriptForm, httpSession);
-		Script<ExtensionSelector> script;
+		Script<ScriptingExtension> script;
 		EntryReference entryReference;
 		synchronized (chatState) {
 			List<ChatSessionState> sessions = chatState.sessions();
@@ -232,7 +232,7 @@ class ScriptController {
 			@RequestParam(value = "targetEntryId", required = false) String targetEntryId, Model model,
 			HttpSession httpSession) {
 		ChatState chatState = loadChatState(scriptForm, httpSession);
-		Script<ExtensionSelector> script;
+		Script<ScriptingExtension> script;
 		EntryReference entryReference;
 		synchronized (chatState) {
 			List<ChatSessionState> sessions = chatState.sessions();
@@ -360,7 +360,7 @@ class ScriptController {
 		}
 	}
 
-	private ChatEntryState createPreviewedEntry(String prompt, Script<ExtensionSelector> generatedScript) {
+	private ChatEntryState createPreviewedEntry(String prompt, Script<ScriptingExtension> generatedScript) {
 		ChatEntryState entry = new ChatEntryState();
 		entry.setId(UUID.randomUUID().toString());
 		entry.setPrompt(prompt);
@@ -802,7 +802,7 @@ class ScriptController {
 
 		private String scriptJson;
 
-		private transient Script<ExtensionSelector> script;
+		private transient Script<ScriptingExtension> script;
 
 		private boolean pending;
 
@@ -865,7 +865,7 @@ class ScriptController {
 
 		@JsonIgnore
 		public String getScriptText() {
-			Script<ExtensionSelector> resolvedScript = scriptOrNull();
+			Script<ScriptingExtension> resolvedScript = scriptOrNull();
 			return resolvedScript != null ? resolvedScript.source().getCharacters().toString() : null;
 		}
 
@@ -876,7 +876,7 @@ class ScriptController {
 
 		@JsonIgnore
 		public String getName() {
-			Script<ExtensionSelector> resolvedScript = scriptOrNull();
+			Script<ScriptingExtension> resolvedScript = scriptOrNull();
 			if (resolvedScript == null) {
 				return null;
 			}
@@ -890,20 +890,20 @@ class ScriptController {
 		}
 
 		@JsonIgnore
-		public Script<ExtensionSelector> requireScript() {
-			Script<ExtensionSelector> resolvedScript = scriptOrNull();
+		public Script<ScriptingExtension> requireScript() {
+			Script<ScriptingExtension> resolvedScript = scriptOrNull();
 			if (resolvedScript == null) {
 				throw new IllegalArgumentException("Generated script is missing.");
 			}
 			return resolvedScript;
 		}
 
-		void setScript(Script<ExtensionSelector> script) {
+		void setScript(Script<ScriptingExtension> script) {
 			this.script = script;
 			this.scriptJson = script != null ? script.toJSON() : null;
 		}
 
-		private Script<ExtensionSelector> scriptOrNull() {
+		private Script<ScriptingExtension> scriptOrNull() {
 			if (this.script != null) {
 				return this.script;
 			}

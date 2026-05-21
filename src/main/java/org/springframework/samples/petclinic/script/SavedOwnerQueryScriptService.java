@@ -17,7 +17,7 @@ package org.springframework.samples.petclinic.script;
 
 import java.util.List;
 import org.graalvm.scriptagent.Script;
-import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ExtensionSelector;
+import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ScriptingExtension;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -80,7 +80,7 @@ public class SavedOwnerQueryScriptService {
 		}
 		SavedOwnerQueryScript savedQuery = this.savedOwnerQueryScripts.findById(id)
 			.orElseThrow(() -> new IllegalArgumentException("Saved owner query was not found."));
-		Script<ExtensionSelector> script = PetClinicScriptExtensions.fromJson(savedQuery.getScriptJson());
+		Script<ScriptingExtension> script = PetClinicScriptExtensions.fromJson(savedQuery.getScriptJson());
 		ScriptService.PreviewResult preview = this.scriptService.preview(script);
 		if (preview.scriptKind() != ScriptService.ScriptKind.OWNER_QUERY) {
 			throw new IllegalArgumentException("Saved owner query must not modify data.");

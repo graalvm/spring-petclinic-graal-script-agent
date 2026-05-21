@@ -20,7 +20,7 @@ import java.util.List;
 import org.graalvm.scriptagent.Schema;
 import org.graalvm.scriptagent.Script;
 import org.junit.jupiter.api.Test;
-import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ExtensionSelector;
+import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ScriptingExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,9 +32,6 @@ class PetClinicScriptExtensionsTests {
 
 		assertThat(schema.requireType("OwnersApi")).extracting(Schema.SchemaType::description)
 			.isEqualTo("Query API for Spring PetClinic owners.");
-		assertThat(schema.requireMethod("ExtensionSelector#choose"))
-			.extracting(method -> method.returnType().targetId())
-			.isEqualTo("ScriptingExtension");
 		assertThat(schema.requireMethod("OwnerQueryHierarchyResultExtension#execute"))
 			.extracting(method -> method.returnType().targetId())
 			.isEqualTo("OwnerHierarchyResult");
@@ -105,8 +102,8 @@ class PetClinicScriptExtensionsTests {
 
 	@Test
 	void shouldCreateScriptWithConfiguredProperties() {
-		Script<ExtensionSelector> script = PetClinicScriptTestSupport.createScript(
-				"() => util.implement(types.OwnerQueryJsonResultExtension, { execute: ownersApi => util.implement(types.JsonResult, { json: () => JSON.stringify(ownersApi.findByCityStartingWith('Madison').length) }) })",
+		Script<ScriptingExtension> script = PetClinicScriptTestSupport.createScript(
+				"util.implement(types.OwnerQueryJsonResultExtension, { execute: ownersApi => util.implement(types.JsonResult, { json: () => JSON.stringify(ownersApi.findByCityStartingWith('Madison').length) }) })",
 				"Show Owners");
 
 		assertThat(script.property(PetClinicScriptExtensions.CAPTION_PROPERTY)).isEqualTo("Show Owners");

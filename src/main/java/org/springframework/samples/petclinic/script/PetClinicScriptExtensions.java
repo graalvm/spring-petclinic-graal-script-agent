@@ -29,20 +29,16 @@ public final class PetClinicScriptExtensions {
 
 	static final String CAPTION_PROPERTY = "caption";
 
-	private static final Schema SCRIPT_SCHEMA = JavaDiscovery.discover(ExtensionSelector.class);
+	private static final String CAPTION_PROPERTY_PROMPT = "Provide a short human-readable script title.";
+
+	private static final Schema SCRIPT_SCHEMA = JavaDiscovery.discover(ScriptingExtension.class);
 
 	private PetClinicScriptExtensions() {
 	}
 
 	@DefaultSchemaDiscovery
 	@SchemaProperty(name = PetClinicScriptExtensions.CAPTION_PROPERTY,
-			prompt = "Provide a short human-readable script title.")
-	public interface ExtensionSelector {
-
-		ScriptingExtension choose();
-
-	}
-
+			prompt = PetClinicScriptExtensions.CAPTION_PROPERTY_PROMPT)
 	public sealed interface ScriptingExtension
 			permits OwnerQueryHierarchyResultExtension, OwnerQueryJsonResultExtension, ModificationExtension {
 
@@ -152,11 +148,11 @@ public final class PetClinicScriptExtensions {
 		return SCRIPT_SCHEMA;
 	}
 
-	static Script<ExtensionSelector> fromJson(String scriptJson) {
+	static Script<ScriptingExtension> fromJson(String scriptJson) {
 		if (!StringUtils.hasText(scriptJson)) {
 			throw new IllegalArgumentException("Script JSON cannot be empty.");
 		}
-		return Script.fromJSON(ExtensionSelector.class, scriptJson, SCRIPT_SCHEMA);
+		return Script.fromJSON(ScriptingExtension.class, scriptJson, SCRIPT_SCHEMA);
 	}
 
 }

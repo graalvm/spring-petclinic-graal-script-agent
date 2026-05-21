@@ -17,18 +17,18 @@ package org.springframework.samples.petclinic.script;
 
 import org.graalvm.polyglot.Source;
 import org.graalvm.scriptagent.Script;
-import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ExtensionSelector;
+import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ScriptingExtension;
 
 final class PetClinicScriptTestSupport {
 
 	private PetClinicScriptTestSupport() {
 	}
 
-	static Script<ExtensionSelector> createScript(String scriptText, String scriptCaption) {
+	static Script<ScriptingExtension> createScript(String scriptText, String scriptCaption) {
 		Source source = Source.newBuilder("js", scriptText, "script.js").buildLiteral();
 		return Script.newBuilder(source, PetClinicScriptExtensions.scriptSchema())
 			.property(PetClinicScriptExtensions.CAPTION_PROPERTY, scriptCaption)
-			.build(ExtensionSelector.class);
+			.build(ScriptingExtension.class);
 	}
 
 }

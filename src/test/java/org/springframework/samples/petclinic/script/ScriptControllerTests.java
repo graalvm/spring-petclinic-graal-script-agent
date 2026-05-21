@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.graalvm.scriptagent.Script;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
-import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ExtensionSelector;
+import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ScriptingExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.mock.web.MockHttpSession;
@@ -87,7 +87,7 @@ class ScriptControllerTests {
 	@Test
 	void testNewGetRequestAddsSessionWithoutDroppingExistingSessions() throws Exception {
 		MockHttpSession httpSession = new MockHttpSession();
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Show Owners",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Show Owners",
 				"api.ownersApi.findByCityStartingWith('Madison');");
 		given(this.scriptGenerationService.generateScript(eq("show owners in Madison"), any()))
 			.willReturn(new ScriptGenerationService.GenerationResult("session-1", generatedScript));
@@ -182,7 +182,7 @@ class ScriptControllerTests {
 	@Test
 	void testGenerateAndPreviewScriptingScript() throws Exception {
 		MockHttpSession httpSession = new MockHttpSession();
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Show Owners",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Show Owners",
 				"api.ownersApi.findByCityStartingWith('Madison');");
 		given(this.scriptGenerationService.generateScript(eq("show owners in Madison"), any()))
 			.willReturn(new ScriptGenerationService.GenerationResult("session-1", generatedScript));
@@ -263,7 +263,7 @@ class ScriptControllerTests {
 				List.of(entry("entry-1", "show all owners", "Show Owners",
 						"api.ownersApi.findByLastNameStartingWith('');", List.of(), false, false, null, false, null,
 						null, null))));
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Refined Query",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Refined Query",
 				"api.ownersApi.findByLastNameStartingWith('F');");
 		given(this.scriptGenerationService.generateScript(eq("improve this"), eq("session-1")))
 			.willReturn(new ScriptGenerationService.GenerationResult("session-1", generatedScript));
@@ -302,7 +302,7 @@ class ScriptControllerTests {
 		MockHttpSession httpSession = new MockHttpSession();
 		CountDownLatch generationStarted = new CountDownLatch(1);
 		CountDownLatch releaseGeneration = new CountDownLatch(1);
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Show Owners",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Show Owners",
 				"api.ownersApi.findByCityStartingWith('Madison');");
 		given(this.scriptGenerationService.generateScript(any(), any())).willAnswer(invocation -> {
 			generationStarted.countDown();
@@ -340,7 +340,7 @@ class ScriptControllerTests {
 	void testStateRefreshPreservesEmptyNewSessionWhileAnotherSessionIsPending() throws Exception {
 		MockHttpSession httpSession = new MockHttpSession();
 		CountDownLatch releaseGeneration = new CountDownLatch(1);
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Show Owners",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Show Owners",
 				"api.ownersApi.findByCityStartingWith('Madison');");
 		given(this.scriptGenerationService.generateScript(any(), any())).willAnswer(invocation -> {
 			releaseGeneration.await(2, TimeUnit.SECONDS);
@@ -372,7 +372,7 @@ class ScriptControllerTests {
 	@Test
 	void testGenerateAndPreviewRendersWarningOnlyOnceInRed() throws Exception {
 		MockHttpSession httpSession = new MockHttpSession();
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Add Owner",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Add Owner",
 				"api.modificationApi.addOwner('John', 'Doe', '', 'Fitchburg', '6085558763');");
 		given(this.scriptGenerationService.generateScript(eq("add john doe"), any()))
 			.willReturn(new ScriptGenerationService.GenerationResult("session-1", generatedScript));
@@ -402,8 +402,8 @@ class ScriptControllerTests {
 	@Test
 	void testGenerateAndPreviewNoOpModificationShowsMessageWithoutExecuteButton() throws Exception {
 		MockHttpSession httpSession = new MockHttpSession();
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("No-op Modification",
-				"() => util.implement(types.ModificationExtension, { execute: (ownersApi, modificationApi) => {} })");
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("No-op Modification",
+				"util.implement(types.ModificationExtension, { execute: (ownersApi, modificationApi) => {} })");
 		given(this.scriptGenerationService.generateScript(eq("do nothing"), any()))
 			.willReturn(new ScriptGenerationService.GenerationResult("session-1", generatedScript));
 		given(this.scriptService.preview(any())).willReturn(new ScriptService.PreviewResult(List.of(), false,
@@ -428,7 +428,7 @@ class ScriptControllerTests {
 	@Test
 	void testGenerateAndPreviewShowsCompactPetResultForModificationScript() throws Exception {
 		MockHttpSession httpSession = new MockHttpSession();
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Add Pet",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Add Pet",
 				"api.modificationApi.addPet('George', 'Franklin', 'Unda', 'dog', '2020-05-01'); [{ name: 'Unda' }];");
 		given(this.scriptGenerationService.generateScript(eq("add pet"), any()))
 			.willReturn(new ScriptGenerationService.GenerationResult("session-1", generatedScript));
@@ -455,7 +455,7 @@ class ScriptControllerTests {
 	@Test
 	void testGenerateAndPreviewShowsErrorWhenScriptReturnsErrorResult() throws Exception {
 		MockHttpSession httpSession = new MockHttpSession();
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Add Pet",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Add Pet",
 				"api.modificationApi.addPet('Missing', 'Owner', 'Unda', 'dog', '2020-05-01');");
 		given(this.scriptGenerationService.generateScript(eq("add pet"), any()))
 			.willReturn(new ScriptGenerationService.GenerationResult("session-1", generatedScript));
@@ -515,7 +515,7 @@ class ScriptControllerTests {
 						List.of(ScriptService.PreviewOperation
 							.plain("Add owner: John Doe, 1 Main St., Madison, 6085558763")),
 						false, false, null, false, null, null, null))));
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Show Owners",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Show Owners",
 				"api.ownersApi.findByCityStartingWith('Madison');");
 		given(this.scriptGenerationService.generateScript(eq("show owners"), eq("session-1")))
 			.willAnswer(invocation -> {
@@ -737,7 +737,7 @@ class ScriptControllerTests {
 	@Test
 	void testGenerateAndPreviewMarksRepeatedOwnerQuerySave() throws Exception {
 		MockHttpSession httpSession = new MockHttpSession();
-		Script<ExtensionSelector> generatedScript = mockGeneratedScript("Show Owners",
+		Script<ScriptingExtension> generatedScript = mockGeneratedScript("Show Owners",
 				"api.ownersApi.findByCityStartingWith('Madison');");
 		given(this.scriptGenerationService.generateScript(eq("show owners in Madison"), any()))
 			.willReturn(new ScriptGenerationService.GenerationResult("session-1", generatedScript));
@@ -860,7 +860,7 @@ class ScriptControllerTests {
 				: new AssertionError("Expected refreshed scripting page to contain " + expected);
 	}
 
-	private Script<ExtensionSelector> mockGeneratedScript(String caption, String sourceText) {
+	private Script<ScriptingExtension> mockGeneratedScript(String caption, String sourceText) {
 		return PetClinicScriptTestSupport.createScript(sourceText, caption);
 	}
 
@@ -884,7 +884,7 @@ class ScriptControllerTests {
 			boolean scriptResultPresent, Object scriptResultValue, boolean executed, String executionSuccessMessage,
 			String executionError, String previewError) {
 		Map<String, Object> entry = new LinkedHashMap<>();
-		Script<ExtensionSelector> script = PetClinicScriptTestSupport.createScript(scriptText, scriptName);
+		Script<ScriptingExtension> script = PetClinicScriptTestSupport.createScript(scriptText, scriptName);
 		entry.put("id", id);
 		entry.put("prompt", prompt);
 		entry.put("scriptJson", script.toJSON());

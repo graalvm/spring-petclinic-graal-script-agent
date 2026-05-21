@@ -34,7 +34,6 @@ import org.springframework.samples.petclinic.owner.OwnerRepository;
 import org.springframework.samples.petclinic.owner.Pet;
 import org.springframework.samples.petclinic.owner.PetTypeRepository;
 import org.springframework.samples.petclinic.owner.Visit;
-import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ExtensionSelector;
 import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.JsonResult;
 import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ModificationExtension;
 import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.OwnerHierarchyResult;
@@ -73,20 +72,20 @@ public class ScriptService {
 		this.petTypeRepository = petTypeRepository;
 	}
 
-	public PreviewResult preview(Script<ExtensionSelector> script) {
+	public PreviewResult preview(Script<ScriptingExtension> script) {
 		ExecutionState state = new ExecutionState(false, this.ownerRepository, this.petTypeRepository);
 		ScriptExecution execution = execute(script, state);
 		return new PreviewResult(state.previewOperations(), state.hasIncompleteOperations(), execution.scriptResult(),
 				execution.scriptKind());
 	}
 
-	public ExecutionResult execute(Script<ExtensionSelector> script) {
+	public ExecutionResult execute(Script<ScriptingExtension> script) {
 		ExecutionState state = new ExecutionState(true, this.ownerRepository, this.petTypeRepository);
 		ScriptExecution execution = execute(script, state);
 		return new ExecutionResult(state.previewOperations(), execution.scriptResult(), execution.scriptKind());
 	}
 
-	private ScriptExecution execute(Script<ExtensionSelector> script, ExecutionState state) {
+	private ScriptExecution execute(Script<ScriptingExtension> script, ExecutionState state) {
 		if (script == null) {
 			throw new IllegalArgumentException("Script cannot be null.");
 		}
@@ -98,7 +97,7 @@ public class ScriptService {
 		}
 
 		try (Context context = SCRIPT_SANDBOX.newContextBuilder(script.source().getLanguage()).build()) {
-			return executeSelectedExtension(script.bind(context).choose(), state);
+			return executeSelectedExtension(script.bind(context), state);
 		}
 		catch (RuntimeException ex) {
 			throw new IllegalArgumentException("Script execution failed: " + ex.getMessage(), ex);

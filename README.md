@@ -22,6 +22,16 @@ Then open <http://localhost:8080>.
 
 Because the database is in memory, changes made through the normal UI or through Script Agent scripts are lost when the application stops.
 
+### Native Image
+
+Build a native executable with:
+
+```bash
+./mvnw -Pnative native:compile
+```
+
+The native build creates `target/graal-script-agent-spring-petclinic`.
+
 ### Persistent Oracle Storage
 
 Use the `oracle` Spring profile when you want owner data and saved query scripts to survive application restarts.
@@ -79,7 +89,7 @@ The Script Agent supports sessions, so a user can continue a conversation while 
 
 The Script Agent page uses the `script-agent` library to generate scripts with an LLM. To use `ScriptAgent`, the application must define a schema for generated scripts. This schema is defined in `PetClinicScriptExtensions`.
 
-The schema lets generated scripts choose one extension type through `ExtensionSelector`: `OwnerQueryHierarchyResultExtension` for owner hierarchy query results, `OwnerQueryJsonResultExtension` for JSON query results, or `ModificationExtension` for scripts that modify owners, pets, or visits. Query extensions receive only `OwnersApi`; modification scripts receive `OwnersApi` and `ModificationApi` and do not return a result.
+The schema uses `ScriptingExtension` as the direct script root. Generated scripts return one concrete extension type: `OwnerQueryHierarchyResultExtension` for owner hierarchy query results, `OwnerQueryJsonResultExtension` for JSON query results, or `ModificationExtension` for scripts that modify owners, pets, or visits. Query extensions receive only `OwnersApi`; modification scripts receive `OwnersApi` and `ModificationApi` and do not return a result.
 
 `ScriptGenerationService` uses LangChain4j to connect to the LLM model configured through the `MODEL_*` environment variables described below. The configured model is passed to the `ScriptAgent` builder.
 
