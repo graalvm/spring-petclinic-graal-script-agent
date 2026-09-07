@@ -900,7 +900,7 @@ class ScriptController {
 
 		void setScript(Script<ScriptingExtension> script) {
 			this.script = script;
-			this.scriptJson = script != null ? script.toJSON() : null;
+			this.scriptJson = script != null ? script.toJson() : null;
 		}
 
 		private Script<ScriptingExtension> scriptOrNull() {

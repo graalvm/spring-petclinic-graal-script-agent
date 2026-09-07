@@ -152,7 +152,7 @@ public final class PetClinicScriptExtensions {
 		if (!StringUtils.hasText(scriptJson)) {
 			throw new IllegalArgumentException("Script JSON cannot be empty.");
 		}
-		return Script.fromJSON(ScriptingExtension.class, scriptJson, SCRIPT_SCHEMA);
+		return Script.fromJson(ScriptingExtension.class, scriptJson, SCRIPT_SCHEMA);
 	}
 
 }

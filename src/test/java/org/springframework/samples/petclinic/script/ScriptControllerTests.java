@@ -744,7 +744,7 @@ class ScriptControllerTests {
 		given(this.scriptService.preview(generatedScript))
 			.willReturn(new ScriptService.PreviewResult(List.of(), false, ScriptService.ScriptResultData
 				.present(List.of(Map.of("id", 1, "firstName", "George", "lastName", "Franklin")))));
-		given(this.savedOwnerQueryScripts.isAlreadySaved("Show Owners", generatedScript.toJSON())).willReturn(true);
+		given(this.savedOwnerQueryScripts.isAlreadySaved("Show Owners", generatedScript.toJson())).willReturn(true);
 
 		MvcResult pendingResult = this.mockMvc
 			.perform(post("/scripting/generate-and-preview").session(httpSession)
@@ -887,7 +887,7 @@ class ScriptControllerTests {
 		Script<ScriptingExtension> script = PetClinicScriptTestSupport.createScript(scriptText, scriptName);
 		entry.put("id", id);
 		entry.put("prompt", prompt);
-		entry.put("scriptJson", script.toJSON());
+		entry.put("scriptJson", script.toJson());
 		entry.put("previewOperations", previewOperations);
 		entry.put("previewHasWarnings", previewHasWarnings);
 		entry.put("scriptResultPresent", scriptResultPresent);

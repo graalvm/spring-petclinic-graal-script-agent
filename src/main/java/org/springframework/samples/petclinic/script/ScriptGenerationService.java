@@ -23,6 +23,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiResponsesStreamingChatModel;
 import org.graalvm.scriptagent.Script;
 import org.graalvm.scriptagent.ScriptAgent;
+import org.graalvm.scriptagent.langchain4j.LangChainModel;
 import org.springframework.samples.petclinic.script.PetClinicScriptExtensions.ScriptingExtension;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -62,7 +63,10 @@ public class ScriptGenerationService {
 			modelBuilder.baseUrl(baseUrl);
 		}
 		StreamingChatModel chatModel = modelBuilder.build();
-		this.scriptingAgent = ScriptAgent.newBuilder(chatModel).language("js").instructions(AGENT_INSTRUCTIONS).build();
+		this.scriptingAgent = ScriptAgent.newBuilder(LangChainModel.of(chatModel))
+			.language("js")
+			.instructions(AGENT_INSTRUCTIONS)
+			.build();
 	}
 
 	public GenerationResult generateScript(String prompt, String sessionId) {

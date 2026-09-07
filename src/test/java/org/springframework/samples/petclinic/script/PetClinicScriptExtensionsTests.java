@@ -17,6 +17,8 @@ package org.springframework.samples.petclinic.script;
 
 import java.util.List;
 
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
 import org.graalvm.scriptagent.Schema;
 import org.graalvm.scriptagent.Script;
 import org.junit.jupiter.api.Test;
@@ -107,6 +109,15 @@ class PetClinicScriptExtensionsTests {
 				"Show Owners");
 
 		assertThat(script.property(PetClinicScriptExtensions.CAPTION_PROPERTY)).isEqualTo("Show Owners");
+	}
+
+	@Test
+	void shouldProvideJavaScriptRuntimeForGenerationValidation() {
+		try (Context context = Context.newBuilder("js").build()) {
+			Source source = Source.newBuilder("js", "({ execute: () => null })", "generated-script.js").buildLiteral();
+
+			assertThat(context.parse(source)).isNotNull();
+		}
 	}
 
 }

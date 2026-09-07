@@ -22,6 +22,9 @@
     <!-- Important for reproducible builds. Update using e.g. ./mvnw versions:set -DnewVersion=... -->
     <project.build.outputTimestamp>2024-11-28T14:37:52Z</project.build.outputTimestamp>
     <maven.compiler.parameters>true</maven.compiler.parameters>
+    <graalvm.version>25.0.3</graalvm.version>
+    <langchain4j.version>1.18.0</langchain4j.version>
+    <scriptagent.version>0.1.0</scriptagent.version>
 
     <!-- Web dependencies -->
     <webjars-locator.version>1.1.3</webjars-locator.version>
@@ -38,13 +41,6 @@
     <spring-format.version>0.0.47</spring-format.version>
     <spring-boot.run.jvmArguments>--enable-native-access=ALL-UNNAMED</spring-boot.run.jvmArguments>
   </properties>
-
-  <repositories>
-    <repository>
-      <id>project-local-libs</id>
-      <url>file://${project.basedir}/lib/maven-repository</url>
-    </repository>
-  </repositories>
 
   <dependencies>
     <!-- Spring and Spring Boot dependencies -->
@@ -118,12 +114,36 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-open-ai</artifactId>
-      <version>1.13.0</version>
+      <version>${langchain4j.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.graalvm</groupId>
-      <artifactId>script-agent</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <groupId>org.graalvm.scriptagent</groupId>
+      <artifactId>scriptagent</artifactId>
+      <version>${scriptagent.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.scriptagent</groupId>
+      <artifactId>scriptagent-langchain4j</artifactId>
+      <version>${scriptagent.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>polyglot</artifactId>
+      <version>${graalvm.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>js</artifactId>
+      <version>${graalvm.version}</version>
+      <type>pom</type>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>js-isolate</artifactId>
+      <version>${graalvm.version}</version>
+      <type>pom</type>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
